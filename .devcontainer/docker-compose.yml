@@ -1,0 +1,52 @@
+services:
+  devcontainer:
+    # NOTE: we make hostname consistent to not have to resolve random generated 
+    #       container hostname when connecting to the standalone Spark cluster
+    hostname: learning-scala
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ../..:/workspaces:cached
+      # See Dockerfile for permission configurations
+      - spark-events:/var/spark-events # Main store for Spark History Server
+      - spark-work:/opt/spark/work # Per worker stdout/stderr used by Spark History Server UI
+      - coursier-cache:/home/vscode/.cache/coursier # Persist coursier cache between container restarts
+      - codex-cache:/home/vscode/.codex # Persist codex auth and sessions between container restarts
+    # network_mode: service:kafka
+    command: sleep infinity
+
+  kafka:
+    image: apache/kafka:4.3.1
+    restart: unless-stopped
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+      - kafka-config:/mnt/shared/config
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+
+volumes:
+  # devcontainer
+  spark-events:
+  spark-work:
+  coursier-cache:
+  codex-cache:
+
+  # kafka
+  kafka-data:
+  kafka-config:

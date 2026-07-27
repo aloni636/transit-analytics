@@ -1,0 +1,116 @@
+{
+    "name": "Scala",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "devcontainer",
+    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+    "containerUser": "vscode",
+    "remoteUser": "vscode",
+    "updateContentCommand": {
+        "whoamiUpdateContent": "mkdir -p ${containerWorkspaceFolder}/.whoami && whoami > ${containerWorkspaceFolder}/.whoami/updateContentCommand.txt"
+    },
+    // NOTE: updateContentCommand, postCreateCommand, postStartCommand & postAttachCommand all run with remoteUser
+    "postCreateCommand": {
+        // Link custom config files in the workspace to their appropriate locations
+        "linkSparkConfig": "ln -s ${containerWorkspaceFolder}/config/spark/spark-defaults.conf ${containerEnv:SPARK_HOME}/conf/spark-defaults.conf",
+        "linkSparkLog4j": "ln -s ${containerWorkspaceFolder}/config/spark/log4j2.properties ${containerEnv:SPARK_HOME}/conf/log4j2.properties",
+        "linkSparkEnv": "ln -s ${containerWorkspaceFolder}/config/spark/spark-env.sh ${containerEnv:SPARK_HOME}/conf/spark-env.sh",
+        "linkJupyterConfig": "mkdir -p /home/vscode/.jupyter && ln -s ${containerWorkspaceFolder}/config/jupyter/jupyter_server_config.json /home/vscode/.jupyter/jupyter_server_config.json",
+        "createPythonEnv": "bash -lc 'python3 -m venv ${containerWorkspaceFolder}/.venv && source ${containerWorkspaceFolder}/.venv/bin/activate && pip install --upgrade pip && pip install -r ${containerWorkspaceFolder}/requirements.txt'",
+        "createLogsDir": "mkdir -p ${containerWorkspaceFolder}/.logs",
+        "whoamiPostCreate": "whoami > ${containerWorkspaceFolder}/.whoami/postCreateCommand.txt"
+    },
+    "postStartCommand": {
+        "startSpark": "${containerWorkspaceFolder}/scripts/start-spark.sh",
+        // NOTE: we redirect to /dev/null to prevent nohup from streaming the output to ./nohup.out
+        // NOTE: -l is used to load pipx packages paths from .bashrc, added when ran `pipx ensurepath`
+        "startJupyter": "nohup bash -lc 'jupyter lab --no-browser --ip=127.0.0.1 --port=8888 > .jupyter.log 2>&1 &' > /dev/null",
+        "whoamiPostStart": "whoami > ${containerWorkspaceFolder}/.whoami/postStartCommand.txt"
+    },
+    "postAttachCommand": {
+        "whoamiPostAttachCommand": "whoami > ${containerWorkspaceFolder}/.whoami/postAttachCommand.txt"
+    },
+    // NOTE: More ports will be forwarded by VSCode automatically, but those are the main ones used by scripts in ./scripts/
+    "forwardPorts": [
+        8080, // Spark Master Web UI
+        8081, // Spark Worker 1 Web UI
+        8082, // Spark Worker 2 Web UI
+        8083, // Spark Worker 3 Web UI
+        18080, // Spark History Server Web UI
+        4040, // Spark Application Web UI
+        8888, // Jupyter Notebook
+        1455 // Codex Localhost
+    ],
+    "portsAttributes": {
+        "8080": {
+            "label": "Spark Master Web UI",
+            "onAutoForward": "silent"
+        },
+        "8081": {
+            "label": "Spark Worker 1 Web UI",
+            "onAutoForward": "silent"
+        },
+        "8082": {
+            "label": "Spark Worker 2 Web UI",
+            "onAutoForward": "silent"
+        },
+        "8083": {
+            "label": "Spark Worker 3 Web UI",
+            "onAutoForward": "silent"
+        },
+        "18080": {
+            "label": "Spark History Server Web UI",
+            "onAutoForward": "silent"
+        },
+        "4040": {
+            "label": "Spark Application Web UI",
+            "onAutoForward": "notify"
+        },
+        "8888": {
+            "label": "Jupyter Notebook",
+            "onAutoForward": "silent"
+        },
+        "1455": {
+            "label": "Codex Localhost",
+            "onAutoForward": "silent"
+        }
+    },
+    // disable auto forwarding (relevant when Spark creates new executors after failure)
+    "otherPortsAttributes": {
+        "onAutoForward": "ignore"
+    },
+    // NOTE: JAVA_TOOL_OPTIONS is used to avoid almond kernel issues with Spark 3.3.X & Java 17+
+    //       See: https://stackoverflow.com/questions/73465937/apache-spark-3-3-0-breaks-on-java-17-with-cannot-access-class-sun-nio-ch-direct
+    "remoteEnv": {
+        "PATH": "${containerEnv:SPARK_HOME}/bin:${containerEnv:SPARK_HOME}/sbin:${containerEnv:PATH}",
+        "JAVA_TOOL_OPTIONS": "--add-exports=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED"
+    },
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash"
+            },
+            "extensions": [
+                "streetsidesoftware.code-spell-checker",
+                "berublan.vscode-log-viewer",
+                "mechatroner.rainbow-csv",
+                "mads-hartmann.bash-ide-vscode",
+                "scala-lang.scala",
+                "scalameta.metals",
+                "ms-toolsai.jupyter",
+                "christian-kohler.path-intellisense",
+                "tintinweb.graphviz-interactive-preview",
+                "ms-python.python",
+                "ms-python.black-formatter",
+                "caenrigen.jupytext-sync",
+                "openai.chatgpt"
+            ]
+        }
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+            // 1.027 (!) The 'moby' option is not supported on debian 'trixie' because 'moby-cli' and related system packages are not available in that distribution.
+            // 1.027 (!) To continue, either set the feature option '"moby": false' or use a different base image (for example: 'debian:bookworm' or 'ubuntu-24.04').
+            "moby": false
+        }
+    }
+}
