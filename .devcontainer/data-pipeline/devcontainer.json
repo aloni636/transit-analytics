@@ -1,7 +1,10 @@
 {
-    "name": "Scala",
-    "dockerComposeFile": "docker-compose.yml",
-    "service": "devcontainer",
+    "name": "Spark",
+    "dockerComposeFile": "../docker-compose.yml",
+    "service": "spark-devcontainer",
+    "runServices": [
+        "kafka"
+    ],
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
     "containerUser": "vscode",
     "remoteUser": "vscode",

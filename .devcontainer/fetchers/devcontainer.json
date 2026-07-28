@@ -1,0 +1,24 @@
+{
+    "name": "NodeJS",
+    "dockerComposeFile": "../docker-compose.yml",
+    "service": "nodejs-devcontainer",
+    "runServices": [],
+    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+    "containerUser": "node",
+    "remoteUser": "node",
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash"
+            },
+            "extensions": [
+                "streetsidesoftware.code-spell-checker",
+                "mechatroner.rainbow-csv",
+                "mads-hartmann.bash-ide-vscode",
+                "christian-kohler.path-intellisense",
+                "tintinweb.graphviz-interactive-preview",
+                "openai.chatgpt"
+            ]
+        }
+    }
+}
