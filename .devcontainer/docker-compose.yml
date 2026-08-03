@@ -9,19 +9,55 @@ services:
     volumes:
       - ../..:/workspaces:cached
       # See Dockerfile for permission configurations
-      - spark-events:/var/spark-events # Main store for Spark History Server
-      - spark-work:/opt/spark/work # Per worker stdout/stderr used by Spark History Server UI
-      - coursier-cache:/home/vscode/.cache/coursier # Persist coursier cache between container restarts
-      - codex-cache:/home/vscode/.codex # Persist codex auth and sessions between container restarts
+      - spark-events:/var/spark-events
+      - spark-work:/opt/spark/work
+      - coursier-cache:/home/vscode/.cache/coursier
+      - codex-cache:/home/vscode/.codex
     # network_mode: service:kafka
     command: sleep infinity
 
   nodejs-devcontainer:
-    image: mcr.microsoft.com/devcontainers/javascript-node:24-trixie
+    build:
+      context: ./fetchers
+      dockerfile: Dockerfile
     volumes:
       - ../..:/workspaces:cached
       - codex-cache:/home/node/.codex
+      - aws-cache:/home/node/.aws
     command: sleep infinity
+
+  # https://docs.rustfs.com/installation/container#docker-compose-installation
+  # grant the necessary permissions to RUSTFS volumes path
+  rustfs_perms:
+    image: alpine
+    user: root
+    volumes:
+      - ../data/s3:/fix_path
+    command: chown -R 10001:10001 /fix_path
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    restart: unless-stopped
+    depends_on:
+      rustfs_perms:
+        condition: service_completed_successfully
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ../data/s3/data:/data
+      - ../data/s3/logs:/logs
+    environment:
+      - RUSTFS_OBS_LOG_DIRECTORY=/logs
+      - RUSTFS_ADDRESS=:9000
+      # expose console for port forwarding
+      - RUSTFS_CONSOLE_ADDRESS=0.0.0.0:9001
+      - RUSTFS_ACCESS_KEY=rustfsadmin
+      - RUSTFS_SECRET_KEY=rustfsadmin
+      - RUSTFS_CONSOLE_ENABLE=true
+
+  # Future orchestration uses MWAA Serverless YAML workflows to invoke Lambda.
+  # There is no equivalent local image; see https://docs.aws.amazon.com/mwaa/latest/mwaa-serverless-userguide/workflows.html
 
   kafka:
     image: apache/kafka:4.3.1
@@ -48,11 +84,14 @@ services:
       KAFKA_NUM_PARTITIONS: 3
 
 volumes:
-  # devcontainer
-  spark-events:
-  spark-work:
-  coursier-cache:
+  # spark-devcontainer
+  spark-events: # Main store for Spark History Server
+  spark-work: # Per worker stdout/stderr used by Spark History Server UI
+  coursier-cache: # Persist coursier cache between container restarts
+
+  # credentials & dx
   codex-cache: # Persist codex auth and sessions between container restarts
+  aws-cache:
 
   # kafka
   kafka-data:

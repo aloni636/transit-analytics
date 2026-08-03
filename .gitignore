@@ -79,6 +79,7 @@ data/taxi
 data/natural-earth
 data/rgi
 data/osm
+data/s3
 output/
 
 # python
@@ -106,3 +107,6 @@ derby.log
 
 # secrets
 .netrc
+
+# tmp
+tmp

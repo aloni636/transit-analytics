@@ -2,10 +2,22 @@
     "name": "NodeJS",
     "dockerComposeFile": "../docker-compose.yml",
     "service": "nodejs-devcontainer",
-    "runServices": [],
+    "runServices": [
+        "rustfs_perms",
+        "rustfs"
+    ],
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
     "containerUser": "node",
     "remoteUser": "node",
+    "forwardPorts": [
+        "rustfs:9001"
+    ],
+    "portsAttributes": {
+        "rustfs:9001": {
+            "label": "RustFS Console",
+            "onAutoForward": "openBrowser"
+        }
+    },
     "customizations": {
         "vscode": {
             "settings": {
@@ -17,8 +29,19 @@
                 "mads-hartmann.bash-ide-vscode",
                 "christian-kohler.path-intellisense",
                 "tintinweb.graphviz-interactive-preview",
-                "openai.chatgpt"
+                "openai.chatgpt",
+                "ms-azuretools.vscode-containers",
+                "docker.docker",
+                "hashicorp.terraform",
+                "tamasfe.even-better-toml"
             ]
+        }
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+            // 1.027 (!) The 'moby' option is not supported on debian 'trixie' because 'moby-cli' and related system packages are not available in that distribution.
+            // 1.027 (!) To continue, either set the feature option '"moby": false' or use a different base image (for example: 'debian:bookworm' or 'ubuntu-24.04').
+            "moby": false
         }
     }
 }

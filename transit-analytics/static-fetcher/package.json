@@ -1,0 +1,33 @@
+{
+  "name": "static-fetcher",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^24.16.0"
+  },
+  "packageManager": "pnpm@11.17.0",
+  "scripts": {
+    "check": "tsc --project tsconfig.json",
+    "build": "pnpm run check && node esbuild.mjs",
+    "test": "node --import tsx --test test/fetcher.integration.test.ts",
+    "dev": "node --import tsx dev.ts",
+    "debug": "node --inspect-brk --import tsx dev.ts",
+    "sync": "node scripts/sync.mjs"
+  },
+  "dependencies": {
+    "@aws-lambda-powertools/parameters": "2.34.0",
+    "@aws-sdk/client-s3": "3.1096.0",
+    "@aws-sdk/client-secrets-manager": "3.1096.0",
+    "@aws-sdk/lib-storage": "3.1096.0",
+    "dotenv": "17.4.2",
+    "p-retry": "8.0.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "8.10.162",
+    "@types/node": "26.1.2",
+    "esbuild": "0.25.8",
+    "tsx": "4.20.3",
+    "typescript": "7.0.2"
+  }
+}
