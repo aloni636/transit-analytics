@@ -105,13 +105,21 @@ every ten seconds, but its agency coverage is not complete.
 
 ### Local development
 
-From the fetcher devcontainer:
+From the fetcher devcontainer, use the project recipes for the normal feedback
+cycle:
 
 ```sh
-cd apps/transit-analytics/static-fetcher
-pnpm check
-pnpm build
-pnpm test
+cd apps/transit-analytics
+just check
+just build
+just test
+just verify
+```
+
+The lower-level one-shot fetch and debugger commands remain pnpm tasks:
+
+```sh
+cd static-fetcher
 pnpm dev GTFS_SWITZERLAND
 pnpm debug GTFS_GERMANY
 ```
@@ -160,6 +168,13 @@ Checks, builds, integration tests, and `terraform validate` do not need provider
 keys. Running a Swedish feed locally requires its corresponding key, and a
 Terraform deployment requires both Trafiklab values. The GTFS Sverige 2 value
 can remain absent until that feed is invoked or deployed.
+
+From `apps/transit-analytics`, follow the one-time state-bucket bootstrap in
+`infra/README.md`, run `just init dev`, then use `just plan dev` to build and
+review the Terraform plan and `just deploy dev` to rebuild and apply. Both
+commands validate the configuration, but backend initialization remains an
+explicit setup step so Terraform cannot silently switch state locations. Future
+CI should initialize once per fresh job before calling these recipes.
 
 ### Adding a feed
 

@@ -33,7 +33,8 @@
                 "ms-azuretools.vscode-containers",
                 "docker.docker",
                 "hashicorp.terraform",
-                "tamasfe.even-better-toml"
+                "tamasfe.even-better-toml",
+                "nefrob.vscode-just-syntax"
             ]
         }
     },

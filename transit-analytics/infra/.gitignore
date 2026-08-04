@@ -1,0 +1,10 @@
+# Terraform
+**/.terraform/
+**/.terraform.tfstate.lock.info
+**/.terraform.log
+**/terraform.tfstate
+**/terraform.tfstate.*
+**/*.tfplan
+**/secrets.tfvars
+**/secrets.auto.tfvars
+state.config
