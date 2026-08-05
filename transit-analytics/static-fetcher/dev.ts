@@ -4,6 +4,7 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { config } from "dotenv";
+import { performance } from "node:perf_hooks";
 import pRetry from "p-retry";
 import { getLocalEnvKey } from "./credentials.js";
 import { assertStaticFetcherEvent, feeds } from "./feeds.js";
@@ -54,6 +55,8 @@ const s3 = new S3Client({
 
 await ensureBucket(s3, bucket);
 
+const eventLoopUtilizationStartedAt = performance.eventLoopUtilization();
+
 const result = await fetchStaticFeed(
   {
     key: event.key,
@@ -65,3 +68,12 @@ const result = await fetchStaticFeed(
 );
 
 console.info({ event: "dev.completed", ...result });
+
+const resources = process.resourceUsage();
+console.info({
+  event: "dev.stats",
+  eventLoopUtilization: performance.eventLoopUtilization(
+    eventLoopUtilizationStartedAt,
+  ),
+  maxMemory: `${(resources.maxRSS / 1024).toFixed(1)}MiB`,
+});

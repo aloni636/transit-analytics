@@ -21,11 +21,13 @@
     "@aws-sdk/client-secrets-manager": "3.1096.0",
     "@aws-sdk/lib-storage": "3.1096.0",
     "dotenv": "17.4.2",
-    "p-retry": "8.0.0"
+    "p-retry": "8.0.0",
+    "unzipper": "0.12.5"
   },
   "devDependencies": {
     "@types/aws-lambda": "8.10.162",
     "@types/node": "26.1.2",
+    "@types/unzipper": "0.10.11",
     "esbuild": "0.25.8",
     "tsx": "4.20.3",
     "typescript": "7.0.2"

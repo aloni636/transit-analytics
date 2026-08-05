@@ -1,8 +1,9 @@
 import {
   CreateBucketCommand,
   DeleteBucketCommand,
-  DeleteObjectCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
+  ListObjectsV2Command,
   S3Client,
 } from "@aws-sdk/client-s3";
 import assert from "node:assert/strict";
@@ -38,7 +39,7 @@ async function loadFixture() {
   };
 }
 
-test("fetches a GTFS provider stream into RustFS", async () => {
+test("fetches and extracts a GTFS provider stream into RustFS", async () => {
   const fixture = await loadFixture();
   const bucket = `static-fetcher-test-${Date.now()}`;
 
@@ -71,7 +72,7 @@ test("fetches a GTFS provider stream into RustFS", async () => {
   await new Promise<void>((resolve) =>
     provider.listen(0, "127.0.0.1", resolve),
   );
-  let objectKey: string | undefined;
+  let objectKeys: string[] = [];
   let bucketCreated = false;
 
   try {
@@ -96,8 +97,6 @@ test("fetches a GTFS provider stream into RustFS", async () => {
       s3,
       bucket,
     );
-    objectKey = result.key;
-
     assert.deepEqual(providerRequest, {
       method: "GET",
       url: "/gtfs-static.zip",
@@ -117,9 +116,38 @@ test("fetches a GTFS provider stream into RustFS", async () => {
       await digest(stored.Body as AsyncIterable<Uint8Array>),
       fixture.digest,
     );
+
+    const objects = await s3.send(
+      new ListObjectsV2Command({ Bucket: bucket }),
+    );
+    objectKeys = objects.Contents?.flatMap(({ Key }) => (Key ? [Key] : [])) ?? [];
+    const extractedPrefix = result.key.slice(0, -".zip".length);
+    assert.equal(objectKeys.length, 10);
+    assert(objectKeys.includes(result.key));
+    assert(objectKeys.includes(`${extractedPrefix}/feed_info.txt`));
+
+    const extracted = await s3.send(
+      new GetObjectCommand({
+        Bucket: bucket,
+        Key: `${extractedPrefix}/feed_info.txt`,
+      }),
+    );
+    assert.equal(extracted.ContentType, "application/octet-stream");
+    assert.equal(extracted.ContentLength, 138);
   } finally {
-    if (objectKey) {
-      await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: objectKey }));
+    if (bucketCreated) {
+      const objects = await s3.send(
+        new ListObjectsV2Command({ Bucket: bucket }),
+      ).catch(() => undefined);
+      objectKeys = objects?.Contents?.flatMap(({ Key }) => (Key ? [Key] : [])) ?? objectKeys;
+    }
+    if (objectKeys.length > 0) {
+      await s3.send(
+        new DeleteObjectsCommand({
+          Bucket: bucket,
+          Delete: { Objects: objectKeys.map((Key) => ({ Key })) },
+        }),
+      );
     }
     if (bucketCreated) {
       await s3.send(new DeleteBucketCommand({ Bucket: bucket })).catch(() => { });

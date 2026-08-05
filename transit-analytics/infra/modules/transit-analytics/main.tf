@@ -107,6 +107,12 @@ resource "aws_lambda_function" "static_fetcher" {
   memory_size      = var.lambda_memory_size
   timeout          = var.lambda_timeout
 
+  # Holds GTFS compressed ZIP files because we seek to the end of the file to
+  # access ZIP's metastore and deflate; extracted entries stream directly to S3.
+  ephemeral_storage {
+    size = 1536 # GTFS_SWEDEN_3 ZIP files are around 800MiB, so we double that just to make sure
+  }
+
   environment {
     variables = {
       DESTINATION_BUCKET   = aws_s3_bucket.data_lake.id

@@ -15,6 +15,7 @@
     - [ ] Include Python-to-YAML converter
     - [ ] Add compose service
 - [ ] Add EMR serverless to Terraform
+- [X] Add budget alerts.
 
 ## Data Exploration
 - [ ] Data Exploration:
@@ -45,6 +46,8 @@
 - [ ] ~~Use SBT task runner and replace `./scripts` (tasks can use the sbt's builtin  `"<command>"!` syntax)~~ Use `justfile` to replace `./scripts`
 - [ ] Add build, test and deploy tasks to `build.sbt`
 - [ ] Consider SBT projects `sbt projects` for `gtfs-poller`, `streaming` or `raster-processing`
+- [ ] Use Graviton for better price/performance:
+    - [ ] `architectures = ["arm64"]` for AWS Lambda ([docs](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_function#argument-reference))
 
 ## Fetchers
 - [ ] Conditionally fetch feeds based on etag or last-modified if proven trustworthy
