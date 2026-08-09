@@ -42,6 +42,7 @@ async function loadFixture() {
 test("fetches and extracts a GTFS provider stream into RustFS", async () => {
   const fixture = await loadFixture();
   const bucket = `static-fetcher-test-${Date.now()}`;
+  const scheduledTime = new Date("2026-08-09T12:00:00Z");
 
   const s3 = new S3Client({
     endpoint: process.env.S3_ENDPOINT ?? "http://rustfs:9000",
@@ -94,6 +95,7 @@ test("fetches and extracts a GTFS provider stream into RustFS", async () => {
         objectPrefix: mockFeed.objectPrefix,
         request: mockFeed.createRequest(),
       },
+      scheduledTime,
       s3,
       bucket,
     );
@@ -101,9 +103,9 @@ test("fetches and extracts a GTFS provider stream into RustFS", async () => {
       method: "GET",
       url: "/gtfs-static.zip",
     });
-    assert.match(
+    assert.equal(
       result.key,
-      new RegExp(`^${mockFeed.objectPrefix}/.*\\.zip$`),
+      `${mockFeed.objectPrefix}/2026/08/09/20260809T120000Z.zip`,
     );
 
     const stored = await s3.send(

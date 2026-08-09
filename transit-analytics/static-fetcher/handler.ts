@@ -23,7 +23,7 @@ export const handler: Handler<
   Awaited<ReturnType<typeof fetchStaticFeed>>
 > = async (event) => {
   assertStaticFetcherEvent(event);
-  const feed = feeds[event.key];
+  const feed = feeds[event.feedKey];
   const request =
     "credentialKey" in feed
       ? feed.createRequest(await getSecretsManagerKey(feed.credentialKey))
@@ -31,10 +31,11 @@ export const handler: Handler<
 
   return fetchStaticFeed(
     {
-      key: event.key,
+      key: event.feedKey,
       objectPrefix: feed.objectPrefix,
       request,
     },
+    new Date(event.scheduledTime),
     s3,
     bucket,
   );

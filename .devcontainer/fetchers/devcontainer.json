@@ -34,7 +34,9 @@
                 "docker.docker",
                 "hashicorp.terraform",
                 "tamasfe.even-better-toml",
-                "nefrob.vscode-just-syntax"
+                "nefrob.vscode-just-syntax",
+                "amazonwebservices.aws-toolkit-vscode",
+                "yzhang.markdown-all-in-one"
             ]
         }
     },

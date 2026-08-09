@@ -1,0 +1,24 @@
+{
+  "name": "sf-workflow-executor",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^24.16.0"
+  },
+  "scripts": {
+    "check": "tsc --project tsconfig.json",
+    "build": "pnpm run check && node esbuild.mjs",
+    "test": "node --import tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-sfn": "catalog:"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "catalog:",
+    "@types/node": "catalog:",
+    "esbuild": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
+  }
+}

@@ -1,0 +1,15 @@
+Comment: Fetch one scheduled static transit feed.
+QueryLanguage: JSONata
+StartAt: FetchStaticFeed
+States:
+  FetchStaticFeed:
+    Type: Task
+    Resource: arn:aws:states:::lambda:invoke
+    Arguments:
+      FunctionName: "${static_fetcher_arn}"
+      Payload:
+        # https://docs.aws.amazon.com/step-functions/latest/dg/input-output-contextobject.html
+        feedKey: "{% $states.context.Execution.Input.feedKey %}"
+        scheduledTime: "{% $states.context.Execution.Input.scheduledTime %}"
+    Output: "{% $states.result.Payload %}"
+    End: true

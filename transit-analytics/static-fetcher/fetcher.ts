@@ -14,13 +14,13 @@ const uploadConcurrency = 2;
 
 function buildObjectKey(
   prefix: string,
-  date: Date,
+  scheduledTime: Date,
   suffix?: "zip",
 ): string {
-  const year = date.getUTCFullYear().toString().padStart(4, "0");
-  const month = (date.getUTCMonth() + 1).toString().padStart(2, "0");
-  const day = date.getUTCDate().toString().padStart(2, "0");
-  const timestamp = date
+  const year = scheduledTime.getUTCFullYear().toString().padStart(4, "0");
+  const month = (scheduledTime.getUTCMonth() + 1).toString().padStart(2, "0");
+  const day = scheduledTime.getUTCDate().toString().padStart(2, "0");
+  const timestamp = scheduledTime
     .toISOString()
     .replaceAll("-", "")
     .replaceAll(":", "")
@@ -47,12 +47,13 @@ export async function fetchStaticFeed(
     readonly objectPrefix: string;
     readonly request: Request;
   },
+  scheduledTime: Date,
   s3: S3Client,
   bucket: string,
 ) {
   const startedAt = new Date();
-  const destinationPrefix = buildObjectKey(feed.objectPrefix, startedAt);
-  const destinationKey = buildObjectKey(feed.objectPrefix, startedAt, "zip");
+  const destinationPrefix = buildObjectKey(feed.objectPrefix, scheduledTime);
+  const destinationKey = buildObjectKey(feed.objectPrefix, scheduledTime, "zip");
   const temporaryArchivePath = join(
     tmpdir(),
     `static-fetcher-${process.pid}-${randomUUID()}.zip`,

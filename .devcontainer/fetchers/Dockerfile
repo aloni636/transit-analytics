@@ -21,3 +21,8 @@ RUN apt update && apt install -y just \
     && tar -xzf /tmp/just-lsp.tar.gz -C /tmp \
     && install -m 0755 /tmp/just-lsp /usr/local/bin/just-lsp \
     && rm -f /tmp/just-lsp /tmp/just-lsp.tar.gz
+
+# AWS bash completion
+RUN printf '%s\n' \
+    'complete -C aws_completer aws' \
+    > /etc/bash_completion.d/aws

@@ -8,6 +8,16 @@ output "static_fetcher_function_name" {
   value       = aws_lambda_function.static_fetcher.function_name
 }
 
+output "workflow_executor_function_name" {
+  description = "Name of the Lambda that starts scheduled Step Functions workflows."
+  value       = aws_lambda_function.workflow_executor.function_name
+}
+
+output "static_feed_workflow_arn" {
+  description = "ARN of the static-feed Step Functions state machine."
+  value       = aws_sfn_state_machine.static_feed.arn
+}
+
 output "trafiklab_secret_arn" {
   description = "Provider-scoped secret read by the static fetcher."
   value       = aws_secretsmanager_secret.provider["trafiklab"].arn

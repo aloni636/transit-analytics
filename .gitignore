@@ -110,3 +110,6 @@ derby.log
 
 # tmp
 tmp
+
+# vscode
+learning-scala.code-workspace

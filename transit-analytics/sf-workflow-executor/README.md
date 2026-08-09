@@ -1,0 +1,3 @@
+# Step Functions workflow executor
+
+This Lambda turns each [EventBridge Scheduler occurrence](https://docs.aws.amazon.com/scheduler/latest/UserGuide/managing-schedule-context-attributes.html) into a retry-stable [Standard Step Functions execution name](https://docs.aws.amazon.com/step-functions/latest/apireference/API_StartExecution.html#API_StartExecution_RequestSyntax), while the feed key and scheduled time identify downstream task work. See the [Step Functions context object](https://docs.aws.amazon.com/step-functions/latest/dg/input-output-contextobject.html) and this [background article](https://medium.com/@shweta2202/step-functions-preventing-duplicate-executions-a4f5f2868381).

@@ -34,9 +34,13 @@ async function ensureBucket(
 
 config({ path: ".env.development", quiet: true });
 
-const event: unknown = { key: process.argv[2] };
+const scheduledTime = new Date().toISOString();
+const event: unknown = {
+  feedKey: process.argv[2],
+  scheduledTime,
+};
 assertStaticFetcherEvent(event);
-const feed = feeds[event.key];
+const feed = feeds[event.feedKey];
 const request =
   "credentialKey" in feed
     ? feed.createRequest(getLocalEnvKey(feed.credentialKey))
@@ -59,10 +63,11 @@ const eventLoopUtilizationStartedAt = performance.eventLoopUtilization();
 
 const result = await fetchStaticFeed(
   {
-    key: event.key,
+    key: event.feedKey,
     objectPrefix: feed.objectPrefix,
     request,
   },
+  new Date(event.scheduledTime),
   s3,
   bucket,
 );

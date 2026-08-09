@@ -8,6 +8,16 @@ output "static_fetcher_function_name" {
   value       = module.transit_analytics.static_fetcher_function_name
 }
 
+output "workflow_executor_function_name" {
+  description = "Name of the dev Step Functions workflow executor Lambda."
+  value       = module.transit_analytics.workflow_executor_function_name
+}
+
+output "static_feed_workflow_arn" {
+  description = "ARN of the dev static-feed Step Functions state machine."
+  value       = module.transit_analytics.static_feed_workflow_arn
+}
+
 output "trafiklab_secret_arn" {
   description = "ARN of the dev Trafiklab provider secret."
   value       = module.transit_analytics.trafiklab_secret_arn

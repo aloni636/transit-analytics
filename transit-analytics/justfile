@@ -4,17 +4,20 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 default:
     @just --list
 
-# Type-check the static fetcher.
+# Type-check the static fetcher and Step Functions workflow executor.
 check:
     pnpm --dir static-fetcher check
+    pnpm --dir sf-workflow-executor check
 
-# Type-check and bundle the static fetcher Lambda.
+# Type-check and bundle the static fetcher and Step Functions workflow executor Lambdas.
 build:
     pnpm --dir static-fetcher build
+    pnpm --dir sf-workflow-executor build
 
-# Run the RustFS integration test.
+# Run the RustFS integration test and Step Functions workflow executor unit test.
 test:
     pnpm --dir static-fetcher test
+    pnpm --dir sf-workflow-executor test
 
 # Write the ignored state backend configuration for the authenticated AWS account.
 [group('infrastructure initialization')]

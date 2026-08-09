@@ -1,3 +1,19 @@
+packages:
+  - static-fetcher
+  - sf-workflow-executor
+
+catalog:
+  '@aws-lambda-powertools/parameters': 2.34.0
+  '@aws-sdk/client-s3': 3.1096.0
+  '@aws-sdk/client-secrets-manager': 3.1096.0
+  '@aws-sdk/client-sfn': 3.1096.0
+  '@aws-sdk/lib-storage': 3.1096.0
+  '@types/aws-lambda': 8.10.162
+  '@types/node': 26.1.2
+  esbuild: 0.25.8
+  tsx: 4.20.3
+  typescript: 7.0.2
+
 allowBuilds:
   esbuild: true
 minimumReleaseAgeExclude:

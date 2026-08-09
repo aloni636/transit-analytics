@@ -13,6 +13,11 @@ variable "fetcher_directory" {
   type        = string
 }
 
+variable "workflow_executor_directory" {
+  description = "Absolute path to the Step Functions workflow executor package."
+  type        = string
+}
+
 variable "lambda_memory_size" {
   description = "Static fetcher Lambda memory in MiB."
   type        = number

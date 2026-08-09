@@ -6,7 +6,6 @@
   "engines": {
     "node": "^24.16.0"
   },
-  "packageManager": "pnpm@11.17.0",
   "scripts": {
     "check": "tsc --project tsconfig.json",
     "build": "pnpm run check && node esbuild.mjs",
@@ -16,20 +15,20 @@
     "sync": "node scripts/sync.mjs"
   },
   "dependencies": {
-    "@aws-lambda-powertools/parameters": "2.34.0",
-    "@aws-sdk/client-s3": "3.1096.0",
-    "@aws-sdk/client-secrets-manager": "3.1096.0",
-    "@aws-sdk/lib-storage": "3.1096.0",
+    "@aws-lambda-powertools/parameters": "catalog:",
+    "@aws-sdk/client-s3": "catalog:",
+    "@aws-sdk/client-secrets-manager": "catalog:",
+    "@aws-sdk/lib-storage": "catalog:",
     "dotenv": "17.4.2",
     "p-retry": "8.0.0",
     "unzipper": "0.12.5"
   },
   "devDependencies": {
-    "@types/aws-lambda": "8.10.162",
-    "@types/node": "26.1.2",
+    "@types/aws-lambda": "catalog:",
+    "@types/node": "catalog:",
     "@types/unzipper": "0.10.11",
-    "esbuild": "0.25.8",
-    "tsx": "4.20.3",
-    "typescript": "7.0.2"
+    "esbuild": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
   }
 }

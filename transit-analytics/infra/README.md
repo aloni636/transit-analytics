@@ -40,8 +40,8 @@ just plan dev
 just deploy dev
 ```
 
-`just plan` and `just deploy` build the Lambda before Terraform packages
-`dist/`, preventing stale code from being deployed. They do not initialize the
+`just plan` and `just deploy` build both Lambdas before Terraform packages their
+`dist/` directories, preventing stale code from being deployed. They do not initialize the
 backend: run `just init dev` after a fresh checkout or after provider, module, or
 backend changes. CI initializes once in every fresh job. The dev state and lock
 live under `transit-analytics/dev/terraform.tfstate` in the dedicated state
