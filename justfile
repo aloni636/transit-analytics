@@ -6,18 +6,18 @@ default:
 
 # Type-check the static fetcher and Step Functions workflow executor.
 check:
-    pnpm --dir static-fetcher check
-    pnpm --dir sf-workflow-executor check
+    pnpm --dir apps/static-fetcher check
+    pnpm --dir apps/sf-workflow-executor check
 
 # Type-check and bundle the static fetcher and Step Functions workflow executor Lambdas.
 build:
-    pnpm --dir static-fetcher build
-    pnpm --dir sf-workflow-executor build
+    pnpm --dir apps/static-fetcher build
+    pnpm --dir apps/sf-workflow-executor build
 
 # Run the RustFS integration test and Step Functions workflow executor unit test.
 test:
-    pnpm --dir static-fetcher test
-    pnpm --dir sf-workflow-executor test
+    pnpm --dir apps/static-fetcher test
+    pnpm --dir apps/sf-workflow-executor test
 
 # Write the ignored state backend configuration for the authenticated AWS account.
 [group('infrastructure initialization')]

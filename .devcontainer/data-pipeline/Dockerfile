@@ -89,19 +89,15 @@ RUN . /etc/spark-scala.env; \
 RUN . /etc/spark-scala.env; \
     cs launch --use-bootstrap almond:${ALMOND_VERSION} --scala ${SCALA_VERSION} -- --install
 
+# Install metals for jupyterlab-lsp scala support
+RUN cs install metals --install-dir ~/.local/share/coursier/bin
+
 # Install GIS tooling
 # GDAL: Verify GeoTrellis results & lightly process raw data after downloading
 # osmium: Process OSM specific data format
 # NOTE: trixie provide fairly up-to-date GIS packages compared to Ubuntu
 USER root
 RUN apt-get update && apt-get install -y gdal-bin osmium-tool
-
-# Install AWS CLI v2
-USER root
-RUN curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip \
-    && unzip -q /tmp/awscliv2.zip -d /tmp \
-    && /tmp/aws/install \
-    && rm -rf /tmp/aws /tmp/awscliv2.zip
 
 # We rely on builtin Python 3.13.5 instead of installing a custom version
 USER root
@@ -114,10 +110,6 @@ RUN pipx install "jupyterlab>=4.1.0,<5.0.0a0" --include-deps \
     && pipx inject jupyterlab jupytext \
     && pipx install jupytext \
     && pipx ensurepath
-
-# Install metals for jupyterlab-lsp scala support
-USER ${USERNAME}
-RUN cs install metals --install-dir ~/.local/share/coursier/bin
 
 # Additional Utilities
 # VSCode extension dependencies (Bash IDE)
@@ -132,5 +124,14 @@ RUN mkdir -p /var/spark-events/{eventlog,driverLog} \
     && chown -R ${USERNAME}:${USERNAME} /opt/spark/work \
     && mkdir -p /home/${USERNAME}/.codex \
     && chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}/.codex
+
+# Install just (https://just.systems/man/en/installation.html)
+# Install just-lsp from its pre-built GitHub release (https://github.com/terror/just-lsp/releases)
+# Sha256 file hash can be obtained from the same Github release page
+RUN curl -fsSL "https://github.com/terror/just-lsp/releases/download/0.5.1/just-lsp-0.5.1-x86_64-unknown-linux-gnu.tar.gz" -o /tmp/just-lsp.tar.gz \
+    && echo "2f515fa3df3257f93ced3a675019b95bb7f97b2c1a4ddab6948b6b58f3a678ff  /tmp/just-lsp.tar.gz" | sha256sum --check \
+    && tar -xzf /tmp/just-lsp.tar.gz -C /tmp \
+    && install -m 0755 /tmp/just-lsp /usr/local/bin/just-lsp \
+    && rm -f /tmp/just-lsp /tmp/just-lsp.tar.gz
 
 USER ${USERNAME}

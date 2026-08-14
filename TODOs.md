@@ -2,6 +2,31 @@
 
 # First Priority
 
+### Repo Migration
+- [X] Migrate volumes:
+    - [X] spark-events
+    - [X] spark-work
+    - [X] coursier-cache
+    - [X] codex-cache
+    - [X] aws-cache
+- [X] Add uv:
+    - [X] Drop `./requirements.txt` and replace it with top level `[tool.uv.workspace]`: `./transit-analytics/pyproject.toml`
+    - [X] Add polars, polars-st, geopandas, shapely, numpy
+    - [X] Add uv considerations (better monorepo support with workspaces)
+- [ ] Scala build tool:
+    - [ ] Fix sbt.build paths
+    - [ ] Replace sbt with mill
+        - Add sbt consideration (DSL is annoying, I like to have multi-file builds and config colocate, declarative is simpler)
+- [ ] Renames:
+    - data-pipeline -> spark
+    - fetchers -> nodejs
+    - transit-analytics -> apps
+- [ ] Split justfile to modules:
+    - `just infra`
+    - `just node [fmt|check|test|build]`
+    - `just python [fmt|check|test|build]`
+    - `just scala [fmt|check|test|build]`
+
 ### Infra
 - [X] Add Kafka compose service
 - [X] Add Terraform
@@ -27,7 +52,7 @@
 
 ## Data Exploration
 - [ ] Data Exploration:
-    - [ ] Use Polars with Jupyter
+    - [ ] Explore 
     - [ ] Use PySpark
 
 ## Streaming
@@ -74,3 +99,4 @@
 
 # Third Priority
 - [ ] Bump to Spark 3.5.8 and Geotrellis to 3.8.1
+- [ ] Migrate from multi workers per node to one worker and multiple executors ([see](https://spark.apache.org/docs/latest/core-migration-guide.html#upgrading-from-core-24-to-30)).

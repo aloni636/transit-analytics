@@ -9,7 +9,7 @@
     "containerUser": "vscode",
     "remoteUser": "vscode",
     "updateContentCommand": {
-        "whoamiUpdateContent": "mkdir -p ${containerWorkspaceFolder}/.whoami && whoami > ${containerWorkspaceFolder}/.whoami/updateContentCommand.txt"
+        "whoamiUpdateContent": "mkdir -p ${containerWorkspaceFolder}/.logs/.whoami && whoami > ${containerWorkspaceFolder}/.logs/.whoami/updateContentCommand.txt"
     },
     // NOTE: updateContentCommand, postCreateCommand, postStartCommand & postAttachCommand all run with remoteUser
     "postCreateCommand": {
@@ -18,19 +18,18 @@
         "linkSparkLog4j": "ln -s ${containerWorkspaceFolder}/config/spark/log4j2.properties ${containerEnv:SPARK_HOME}/conf/log4j2.properties",
         "linkSparkEnv": "ln -s ${containerWorkspaceFolder}/config/spark/spark-env.sh ${containerEnv:SPARK_HOME}/conf/spark-env.sh",
         "linkJupyterConfig": "mkdir -p /home/vscode/.jupyter && ln -s ${containerWorkspaceFolder}/config/jupyter/jupyter_server_config.json /home/vscode/.jupyter/jupyter_server_config.json",
-        "createPythonEnv": "bash -lc 'python3 -m venv ${containerWorkspaceFolder}/.venv && source ${containerWorkspaceFolder}/.venv/bin/activate && pip install --upgrade pip && pip install -r ${containerWorkspaceFolder}/requirements.txt'",
         "createLogsDir": "mkdir -p ${containerWorkspaceFolder}/.logs",
-        "whoamiPostCreate": "whoami > ${containerWorkspaceFolder}/.whoami/postCreateCommand.txt"
+        "whoamiPostCreate": "whoami > ${containerWorkspaceFolder}/.logs/.whoami/postCreateCommand.txt"
     },
     "postStartCommand": {
         "startSpark": "${containerWorkspaceFolder}/scripts/start-spark.sh",
         // NOTE: we redirect to /dev/null to prevent nohup from streaming the output to ./nohup.out
         // NOTE: -l is used to load pipx packages paths from .bashrc, added when ran `pipx ensurepath`
-        "startJupyter": "nohup bash -lc 'jupyter lab --no-browser --ip=127.0.0.1 --port=8888 > .jupyter.log 2>&1 &' > /dev/null",
-        "whoamiPostStart": "whoami > ${containerWorkspaceFolder}/.whoami/postStartCommand.txt"
+        "startJupyter": "nohup bash -lc 'jupyter lab --no-browser --ip=127.0.0.1 --port=8888 > .logs/jupyter-lab-autostart.log 2>&1 &' > /dev/null",
+        "whoamiPostStart": "whoami > ${containerWorkspaceFolder}/.logs/.whoami/postStartCommand.txt"
     },
     "postAttachCommand": {
-        "whoamiPostAttachCommand": "whoami > ${containerWorkspaceFolder}/.whoami/postAttachCommand.txt"
+        "whoamiPostAttachCommand": "whoami > ${containerWorkspaceFolder}/.logs/.whoami/postAttachCommand.txt"
     },
     // NOTE: More ports will be forwarded by VSCode automatically, but those are the main ones used by scripts in ./scripts/
     "forwardPorts": [
@@ -90,7 +89,8 @@
     "customizations": {
         "vscode": {
             "settings": {
-                "terminal.integrated.defaultProfile.linux": "bash"
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "python.defaultInterpreterPath": "${workspaceFolder}/transit-analytics/.venv/bin/python"
             },
             "extensions": [
                 "streetsidesoftware.code-spell-checker",
@@ -105,7 +105,9 @@
                 "ms-python.python",
                 "ms-python.black-formatter",
                 "caenrigen.jupytext-sync",
-                "openai.chatgpt"
+                "openai.chatgpt",
+                "tamasfe.even-better-toml",
+                "nefrob.vscode-just-syntax"
             ]
         }
     },
@@ -114,6 +116,25 @@
             // 1.027 (!) The 'moby' option is not supported on debian 'trixie' because 'moby-cli' and related system packages are not available in that distribution.
             // 1.027 (!) To continue, either set the feature option '"moby": false' or use a different base image (for example: 'debian:bookworm' or 'ubuntu-24.04').
             "moby": false
+        },
+        "ghcr.io/devcontainers/features/aws-cli:1": {
+            "verbose": true,
+            "version": "latest"
+        },
+        "ghcr.io/devcontainers/features/terraform:1": {
+            "version": "latest",
+            "tflint": "latest",
+            "terragrunt": "latest",
+            "terraformDocsVersion": "latest"
+        },
+        "ghcr.io/devcontainer-community/devcontainer-features/astral.sh-uv:1": {
+            "shellautocompletion": true,
+            "version": "latest"
+        },
+        // Note: Doesn't have SHA256 verification
+        //       A previous version can be installed with `apt install just`
+        "ghcr.io/jsburckhardt/devcontainer-features/just:1": {
+            "version": "1.58.0"
         }
     }
 }

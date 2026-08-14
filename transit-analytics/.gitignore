@@ -1,1 +1,70 @@
+# NodeJS
 node_modules
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv
+
+
+# Scala: modified version of https://github.com/scala/scala/blob/2.13.x/.gitignore
+# JARs aren't checked in, they are fetched by sbt
+/lib/*.jar
+/test/files/codelib/*.jar
+/test/files/lib/*.jar
+/test/files/speclib/instrumented.jar
+/tools/*.jar
+
+# Developer specific properties
+/build.properties
+/buildcharacter.properties
+
+# might get generated when testing Jenkins scripts locally
+/jenkins.properties
+
+# target directory for build
+/build/
+
+# other
+/out/
+/bin/
+/sandbox/
+
+# intellij
+**/.cache
+/.idea
+/.settings
+# .vscode/
+
+# Standard symbolic link to build/quick/bin
+/qbin
+
+# sbt's target directories
+target
+/project/**/target/
+/test/macro-annot/target/
+/test/files/target/
+/test/target/
+**/target/
+**/project/**/target/
+/build-sbt/
+local.sbt
+jitwatch.out
+
+# Used by the restarr/restarrFull commands as target directories
+/build-restarr/
+/target-restarr/
+
+# scala-cli
+.scala-build
+
+# metals
+.metals
+.bloop
+project/**/metals.sbt
+**/metals.sbt
+
+.bsp
+.history

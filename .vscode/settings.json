@@ -1,16 +1,16 @@
 {
     "files.exclude": {
         // Metals
-        "**/.bloop": true,
-        "**/.metals": true,
-        "**/.bsp": true,
-        // JupyterLab
-        ".virtual_documents": true,
-        ".ipynb_checkpoints": true,
-        ".Trash-1000": true,
-        "metastore_db": true,
-        "derby.log": true,
-        ".whoami": true
+        // "**/.bloop": true,
+        // "**/.metals": true,
+        // "**/.bsp": true,
+        // // JupyterLab
+        // ".virtual_documents": true,
+        // ".ipynb_checkpoints": true,
+        // ".Trash-1000": true,
+        // "metastore_db": true,
+        // "derby.log": true,
+        // ".whoami": true
     },
     "[scala]": {
         "editor.tabSize": 2,
@@ -83,6 +83,9 @@
     "jupytextSync.pythonExecutable": "${userHome}/.local/share/pipx/venvs/jupytext/bin/python3",
     "material-icon-theme.folders.associations": {
         "worksheets": "scala",
+    },
+    "evenBetterToml.schema.associations": {
+        ".*pyproject.toml": "https://json.schemastore.org/pyproject.json"
     },
     "material-icon-theme.files.associations": {
         "secrets.tfvars.example": "terraform"
