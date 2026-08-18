@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "es2024",
+    "lib": [
+      "es2024"
+    ],
+    "types": [
+      "node"
+    ],
+    "strict": true,
+    "noEmit": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    // "skipLibCheck": true,
+    "isolatedModules": true
+  },
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

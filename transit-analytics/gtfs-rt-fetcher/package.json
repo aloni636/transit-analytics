@@ -1,0 +1,30 @@
+{
+  "name": "gtfs-rt-fetcher",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^24.16.0"
+  },
+  "scripts": {
+    "check": "tsc --project tsconfig.json",
+    "build": "pnpm run check && node esbuild.mjs",
+    "test": "node --import tsx --test test/fetcher.integration.test.ts",
+    "dev": "node --import tsx dev.ts",
+    "debug": "node --inspect-brk --import tsx dev.ts",
+    "sync": "node scripts/sync.mjs"
+  },
+  "dependencies": {
+    "@aws-lambda-powertools/parameters": "catalog:",
+    "@aws-sdk/client-secrets-manager": "catalog:",
+    "dotenv": "17.4.2",
+    "gtfs-realtime-bindings": "^2.2.0",
+    "kafkajs": "^2.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "esbuild": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
+  }
+}

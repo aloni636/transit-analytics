@@ -1,6 +1,7 @@
 packages:
   - static-fetcher
   - sf-workflow-executor
+  - gtfs-rt-fetcher
 
 catalog:
   '@aws-lambda-powertools/parameters': 2.34.0

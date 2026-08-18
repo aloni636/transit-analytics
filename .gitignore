@@ -7,11 +7,11 @@ data/
 project/**/metals.sbt
 **/metals.sbt
 
-# jupyterlab
+# jupyterlab (we track ipynb notebooks using jupytext)
 .virtual_documents
 .ipynb_checkpoints
 .Trash-1000
-notebooks/*.ipynb
+*.ipynb
 
 # miscellaneous
 *.bak 
@@ -25,6 +25,7 @@ derby.log
 
 # tmp
 tmp
+codex
 
 # vscode
 transit-analytics.code-workspace
