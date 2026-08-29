@@ -1,0 +1,51 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+default:
+    @just --list
+
+# Write local state.config file pointing to an existing remote S3 state.
+[group('infrastructure initialization')]
+configure-state region="eu-central-1":
+    account_id="$(aws sts get-caller-identity --query Account --output text)"; \
+        printf 'bucket = "%s"\nregion = "%s"\n' \
+        "transit-analytics-terraform-state-${account_id}" "{{ region }}" \
+        > state.config
+
+# Create or update the Terraform state bucket using local bootstrap state.
+[group('infrastructure initialization')]
+bootstrap *terraform_args:
+    terraform -chdir=bootstrap/state init
+    terraform -chdir=bootstrap/state apply \
+        -var-file=../../state.config \
+        {{ terraform_args }}
+
+# Initialize one environment with its isolated S3 state.
+[group('infrastructure initialization')]
+init env *terraform_args:
+    terraform -chdir="environments/{{ env }}" init \
+        -backend-config=../../state.config \
+        {{ terraform_args }}
+
+# Format all Terraform configurations.
+fmt:
+    terraform fmt -recursive
+
+# Check Terraform formatting and validate bootstrap, module, and environment configuration.
+validate:
+    terraform fmt -check -diff -recursive
+    terraform -chdir=bootstrap/state validate
+    for environment_dir in environments/*; do \
+        terraform -chdir="$environment_dir" validate; \
+    done
+
+plan env *terraform_args: validate
+    terraform -chdir="environments/{{ env }}" plan \
+        {{ terraform_args }}
+
+deploy env *terraform_args: validate
+    terraform -chdir="environments/{{ env }}" apply \
+        {{ terraform_args }}
+
+destroy env *terraform_args: validate
+    terraform -chdir="environments/{{ env }}" destroy \
+        {{ terraform_args }}
