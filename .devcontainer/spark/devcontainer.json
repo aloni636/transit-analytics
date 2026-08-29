@@ -3,7 +3,9 @@
     "dockerComposeFile": "../docker-compose.yml",
     "service": "spark-devcontainer",
     "runServices": [
-        "kafka"
+        "kafka",
+        "rustfs_perms",
+        "rustfs"
     ],
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
     "containerUser": "vscode",
@@ -19,6 +21,7 @@
         "linkSparkEnv": "ln -s ${containerWorkspaceFolder}/config/spark/spark-env.sh ${containerEnv:SPARK_HOME}/conf/spark-env.sh",
         "linkJupyterConfig": "mkdir -p /home/vscode/.jupyter && ln -s ${containerWorkspaceFolder}/config/jupyter/jupyter_server_config.json /home/vscode/.jupyter/jupyter_server_config.json",
         "createLogsDir": "mkdir -p ${containerWorkspaceFolder}/.logs",
+        "configureRcAlias": "rc alias set local http://rustfs:9000 rustfsadmin rustfsadmin",
         "whoamiPostCreate": "whoami > ${containerWorkspaceFolder}/.logs/.whoami/postCreateCommand.txt"
     },
     "postStartCommand": {
@@ -40,7 +43,8 @@
         18080, // Spark History Server Web UI
         4040, // Spark Application Web UI
         8888, // Jupyter Notebook
-        1455 // Codex Localhost
+        1455, // Codex Localhost
+        "rustfs:9001" // RusFS UI
     ],
     "portsAttributes": {
         "8080": {
@@ -74,6 +78,10 @@
         "1455": {
             "label": "Codex Localhost",
             "onAutoForward": "silent"
+        },
+        "rustfs:9001": {
+            "label": "RustFS Console",
+            "onAutoForward": "openBrowser"
         }
     },
     // disable auto forwarding (relevant when Spark creates new executors after failure)
@@ -84,7 +92,13 @@
     //       See: https://stackoverflow.com/questions/73465937/apache-spark-3-3-0-breaks-on-java-17-with-cannot-access-class-sun-nio-ch-direct
     "remoteEnv": {
         "PATH": "${containerEnv:SPARK_HOME}/bin:${containerEnv:SPARK_HOME}/sbin:${containerEnv:PATH}",
-        "JAVA_TOOL_OPTIONS": "--add-exports=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED"
+        "JAVA_TOOL_OPTIONS": "--add-exports=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
+        // ~/.cache/uv dir is in local ephemeral storage while /workspaces is cached mounted volume
+        // which means that hardlink is impossible:
+        // warning: Failed to hardlink files; falling back to full copy. This may lead to degraded performance.
+        // If the cache and target directories are on different filesystems, hardlinking may not be supported.
+        // If this is intentional, set `export UV_LINK_MODE=copy` or use `--link-mode=copy` to suppress this warning.
+        "UV_LINK_MODE": "copy"
     },
     "customizations": {
         "vscode": {
@@ -103,7 +117,8 @@
                 "christian-kohler.path-intellisense",
                 "tintinweb.graphviz-interactive-preview",
                 "ms-python.python",
-                "ms-python.black-formatter",
+                "charliermarsh.ruff",
+                "DrBlury.protobuf-vsc",
                 "caenrigen.jupytext-sync",
                 "openai.chatgpt",
                 "tamasfe.even-better-toml",

@@ -3,12 +3,21 @@ name = "transit-analytics-normalization"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
+    "boto3>=1.43.79",
     "geopandas>=1.1.2",
+    "gtfs-realtime-bindings>=2.2.0",
     "numpy>=2.4.1",
     "polars>=1.43.2",
     "polars-st>=0.7.1",
+    "python-dotenv>=1.2.3",
     "shapely>=2.1.2",
+    "types-boto3[s3]>=1.43.79",
 ]
 
 [tool.uv]
 package = false
+
+[dependency-groups]
+dev = [
+    "altair>=6.2.2",
+]

@@ -125,7 +125,6 @@ RUN mkdir -p /var/spark-events/{eventlog,driverLog} \
     && mkdir -p /home/${USERNAME}/.codex \
     && chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}/.codex
 
-# Install just (https://just.systems/man/en/installation.html)
 # Install just-lsp from its pre-built GitHub release (https://github.com/terror/just-lsp/releases)
 # Sha256 file hash can be obtained from the same Github release page
 RUN curl -fsSL "https://github.com/terror/just-lsp/releases/download/0.5.1/just-lsp-0.5.1-x86_64-unknown-linux-gnu.tar.gz" -o /tmp/just-lsp.tar.gz \
@@ -133,5 +132,15 @@ RUN curl -fsSL "https://github.com/terror/just-lsp/releases/download/0.5.1/just-
     && tar -xzf /tmp/just-lsp.tar.gz -C /tmp \
     && install -m 0755 /tmp/just-lsp /usr/local/bin/just-lsp \
     && rm -f /tmp/just-lsp /tmp/just-lsp.tar.gz
+
+# Install rustfs cli from its pre-built GitHub release (https://github.com/rustfs/cli/releases)
+# Sha256 file hash can be obtained from the same Github release page
+RUN curl -fsSL "https://github.com/rustfs/cli/releases/download/v0.1.31/rustfs-cli-linux-amd64-gnu-v0.1.31.tar.gz" -o /tmp/rustfs-cli.tar.gz \
+    && echo "5fdbe89e47c3914cd14b6b1a237535e47aff257a98fa6b90697c0412e496dd18  /tmp/rustfs-cli.tar.gz" | sha256sum --check \
+    && tar -xzf /tmp/rustfs-cli.tar.gz -C /tmp --one-top-level \
+    && install -m 0755 /tmp/rustfs-cli/rc /usr/local/bin/rc \
+    && rm -rf /tmp/rustfs-cli /tmp/rustfs-cli.tar.gz
+
+RUN rc completions bash > /etc/bash_completion.d/rc
 
 USER ${USERNAME}

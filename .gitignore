@@ -22,6 +22,9 @@ derby.log
 
 # secrets
 .netrc
+.env
+.env.*
+!.env.example
 
 # tmp
 tmp

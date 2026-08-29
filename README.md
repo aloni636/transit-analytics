@@ -8,6 +8,8 @@ providers.
 
 ## Infrastructure considerations
 
+### Scheduling
+
 We use Event-Bridge for scheduling and Step-Functions for task orchestration
 because an always-on Airflow MWAA instance is wasteful at this workload scale. \
 We don't use MWAA serverless because [it is not yet integrated with Terraform](https://github.com/hashicorp/terraform-provider-aws/issues/45254),

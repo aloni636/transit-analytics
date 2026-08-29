@@ -18,6 +18,9 @@
             "onAutoForward": "openBrowser"
         }
     },
+    "postCreateCommand": {
+        "configureRcAlias": "rc alias set local http://rustfs:9000 rustfsadmin rustfsadmin"
+    },
     "customizations": {
         "vscode": {
             "settings": {
