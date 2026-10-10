@@ -49,10 +49,17 @@ cron expression, timezone, and target, but are enabled only for the collection's
 start/stop dates and automatically deleted after completion. Originals are not
 changed, and copies are recorded in the collection manifest outside Terraform.
 
-Static downloads use the original provider-oriented cadence, not the realtime
-one-minute polling interval. They run only when a cron occurrence falls within
-the collection window; there is no immediate starting snapshot. In particular,
-a two-minute smoke test can complete without downloading any static archive.
+Before starting realtime collection, the CLI always fetches an initial snapshot
+of every required static feed and waits for each execution to succeed. Archives
+are fetched sequentially to avoid competing for Lambda temporary disk space.
+The initial execution ARNs are saved in the manifest. If an initial fetch fails,
+realtime collection and temporary schedules are not started.
+
+The full two-day window (or two-minute smoke window) begins after the initial
+snapshots succeed. Later static downloads use the original provider-oriented
+cadence, not the realtime one-minute polling interval. Even a smoke test gets
+initial static archives, regardless of whether a cron occurrence falls within
+its window. The CLI remains running while the initial archives are fetched.
 
 Redeploy Terraform before using this command so the `static_feed_schedules`
 output and executor deadline check are available. The CLI's AWS identity needs
@@ -96,7 +103,7 @@ pnpm collection stop .collections/<manifest>.json
 ```
 
 The command removes that collection's temporary static schedules and stops the
-currently active realtime continuation. Already-deleted schedules are harmless.
+currently active realtime continuation or initial static executions. Already-deleted schedules are harmless.
 For Console-only starts without a manifest, stop the active execution through
 the Console or `aws stepfunctions stop-execution` instead.
 

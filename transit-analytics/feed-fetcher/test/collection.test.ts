@@ -10,7 +10,7 @@ const cwd = fileURLToPath(new URL("../", import.meta.url));
 const keys = ["GTFS_SWEDEN_3_TRIP_UPDATES_SL", "GTFS_SWEDEN_3_TRIP_UPDATES_UL", "GTFS_SWITZERLAND_TRIP_UPDATES"];
 
 test("copies unique static schedules for the collection window and cleans up partial launches", async () => {
-  for (const mode of ["start", "smoke", "partial"]) {
+  for (const mode of ["start", "smoke", "partial", "baseline-failure"]) {
     const directory = await mkdtemp(join(tmpdir(), "collection-cli-test-"));
     try {
       const fixture = fileURLToPath(new URL("fixtures/collection-cli-command.mjs", import.meta.url));
@@ -19,21 +19,35 @@ test("copies unique static schedules for the collection window and cleans up par
       const tracePath = join(directory, "calls.jsonl");
       const env = { ...process.env, PATH: directory + delimiter + process.env.PATH, CLI_TEST_TRACE: tracePath,
         ...(mode === "partial" ? { FAIL_SECOND_CREATE: "1" } : {}),
+        ...(mode === "baseline-failure" ? { FAIL_INITIAL_STATIC: "1" } : {}),
       };
       const result = spawnSync(process.execPath, ["--import", "tsx", join(cwd, "scripts/collection.ts"), mode === "smoke" ? "smoke" : "start", ...keys], {
         cwd: directory, encoding: "utf8", env,
       });
-      assert.equal(result.status, mode === "partial" ? 1 : 0, result.stderr);
+      assert.equal(result.status, mode === "partial" || mode === "baseline-failure" ? 1 : 0, result.stderr);
       if (mode === "partial") assert.match(result.stderr, /Partial collection launch/);
       const path = result.stdout.split("\n")[0].replace("Collection manifest: ", "");
       const manifest = JSON.parse(await readFile(join(directory, path), "utf8"));
       const calls = (await readFile(tracePath, "utf8")).trim().split("\n").map((line) => JSON.parse(line) as string[]);
+      if (mode === "baseline-failure") {
+        assert.match(result.stderr, /Initial static snapshot failed/);
+        assert.equal(manifest.executionArn, "");
+        assert.equal(manifest.initialStaticExecutions.length, 1);
+        assert(!calls.some((call) => call[1] === "create-schedule"));
+        assert.equal(calls.filter((call) => call[1] === "start-execution").length, 1);
+        continue;
+      }
       assert.equal(Date.parse(manifest.stopAt) - Date.parse(manifest.startedAt), (mode === "smoke" ? 120 : 172800) * 1000);
       assert.deepEqual(manifest.staticSchedules.map((schedule: any) => schedule.feedKey), ["GTFS_SWEDEN_3", "GTFS_SWITZERLAND"]);
       assert(manifest.executionArn);
+      assert.deepEqual(manifest.initialStaticExecutions.map((initial: any) => initial.feedKey), ["GTFS_SWEDEN_3", "GTFS_SWITZERLAND"]);
       assert.equal(manifest.staticSchedules.filter((schedule: any) => schedule.arn).length, mode === "partial" ? 1 : 2);
       assert.equal(calls.filter((call) => call[1] === "get-schedule").length, 2);
-      assert.equal(calls.filter((call) => call[1] === "start-execution").length, 1);
+      assert.equal(calls.filter((call) => call[1] === "start-execution").length, 3);
+      const realtimeIndex = calls.findIndex((call) => call[1] === "start-execution" && call.includes("arn:aws:states:eu-central-1:123456789012:stateMachine:realtime"));
+      const initialChecks = calls.map((call, index) => call[1] === "describe-execution" && call.some((arg) => arg.includes(":initial-")) ? index : -1).filter((index) => index >= 0);
+      assert.equal(initialChecks.length, 2);
+      assert(initialChecks.every((index) => index < realtimeIndex));
       const copies = calls.filter((call) => call[1] === "create-schedule").map((call) => JSON.parse(call[call.indexOf("--cli-input-json") + 1]));
       assert.equal(copies.length, 2);
       for (const [index, copy] of copies.entries()) {

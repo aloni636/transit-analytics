@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { setTimeout } from "node:timers/promises";
 import { parse } from "yaml";
 import { realtimeFeeds, type RealtimeFeedKey } from "@transit-analytics/shared/feeds";
 
@@ -54,8 +55,8 @@ if (command === "validate") {
       event.notificationConfigurationArn === outputs.notification_configuration_arn.value,
     ), null, 2));
   } else {
-    const startedAt = new Date(Math.floor(Date.now() / 1000) * 1000).toISOString();
-    const stopAt = new Date(Date.parse(startedAt) + (command === "smoke" ? 120 : 172800) * 1000).toISOString();
+    let startedAt = new Date(Math.floor(Date.now() / 1000) * 1000).toISOString();
+    let stopAt = new Date(Date.parse(startedAt) + (command === "smoke" ? 120 : 172800) * 1000).toISOString();
     const collectionName = "collection-" + randomUUID();
     const staticKeys = [...new Set(arguments_.map((key) => realtimeFeeds[key as RealtimeFeedKey].staticFeedKey))];
     const schedules = staticKeys.map((feedKey, index) => {
@@ -85,6 +86,7 @@ if (command === "validate") {
       alarmPrefix: outputs.realtime_fetcher_function_name.value as string,
       stateMachineArn: outputs.realtime_feed_workflow_arn.value as string,
       executionArn: "",
+      initialStaticExecutions: [] as { feedKey: string; executionArn: string }[],
       staticSchedules: schedules.map((schedule, index) => ({
         feedKey: staticKeys[index], name: schedule.Name, groupName: schedule.GroupName, arn: "",
       })),
@@ -93,6 +95,31 @@ if (command === "validate") {
     const path = ".collections/" + collectionName + ".json";
     await writeFile(path, JSON.stringify(manifest, null, 2) + "\n", { flag: "wx" });
     console.log("Collection manifest: " + path);
+    // Fetch archives sequentially so they do not compete for one Lambda's temporary disk.
+    for (const [index, feedKey] of staticKeys.entries()) {
+      const initial = aws("stepfunctions", "start-execution",
+        "--state-machine-arn", outputs.static_feed_workflow_arn.value,
+        "--name", collectionName + "-initial-" + index,
+        "--input", JSON.stringify({ feedKeys: [feedKey], scheduledTime: new Date().toISOString() }));
+      manifest.initialStaticExecutions.push({ feedKey, executionArn: initial.executionArn });
+      await writeFile(path, JSON.stringify(manifest, null, 2) + "\n");
+      console.log(JSON.stringify({ initialStaticFeed: feedKey, executionArn: initial.executionArn }));
+      let execution = aws("stepfunctions", "describe-execution", "--execution-arn", initial.executionArn);
+      while (execution.status === "RUNNING") {
+        await setTimeout(5_000);
+        execution = aws("stepfunctions", "describe-execution", "--execution-arn", initial.executionArn);
+      }
+      if (execution.status !== "SUCCEEDED") throw new Error("Initial static snapshot failed for " + feedKey + ": " + execution.status + ". Realtime collection was not started; inspect " + path);
+    }
+    startedAt = new Date(Math.floor(Date.now() / 1000) * 1000).toISOString();
+    stopAt = new Date(Date.parse(startedAt) + (command === "smoke" ? 120 : 172800) * 1000).toISOString();
+    Object.assign(manifest, { startedAt, stopAt });
+    for (const schedule of schedules) {
+      schedule.StartDate = startedAt;
+      schedule.EndDate = stopAt;
+      schedule.Target.Input = JSON.stringify({ ...JSON.parse(schedule.Target.Input), stopAt });
+    }
+    await writeFile(path, JSON.stringify(manifest, null, 2) + "\n");
     const result = aws("stepfunctions", "start-execution",
       "--state-machine-arn", manifest.stateMachineArn,
       "--name", collectionName,
@@ -119,10 +146,9 @@ if (command === "validate") {
   const report: Record<string, unknown>[] = [];
   const endMs = Math.min(Date.now(), Date.parse(manifest.stopAt));
   let current = manifest.executionArn;
-  if (!current) throw new Error("Collection did not start; the manifest has no execution ARN.");
   let execution: any;
   const chain: string[] = [];
-  while (true) {
+  while (current) {
     chain.push(current);
     execution = aws("stepfunctions", "describe-execution", "--execution-arn", current);
     const output = execution.output ? JSON.parse(execution.output) : {};
@@ -140,8 +166,16 @@ if (command === "validate") {
         if (!(error instanceof Error) || !("stderr" in error) || !String(error.stderr).includes("ResourceNotFoundException")) throw error;
       }
     }
-    if (execution.status === "RUNNING") aws("stepfunctions", "stop-execution", "--execution-arn", current);
+    if (execution?.status === "RUNNING") aws("stepfunctions", "stop-execution", "--execution-arn", current);
+    for (const initial of manifest.initialStaticExecutions ?? []) {
+      const snapshot = aws("stepfunctions", "describe-execution", "--execution-arn", initial.executionArn);
+      if (snapshot.status === "RUNNING") aws("stepfunctions", "stop-execution", "--execution-arn", initial.executionArn);
+    }
     console.log(JSON.stringify({ stoppedExecutionArn: current, deletedStaticSchedules: manifest.staticSchedules ?? [] }));
+    process.exit(0);
+  }
+  if (!current) {
+    console.log(JSON.stringify({ realtimeStarted: false, initialStaticExecutions: manifest.initialStaticExecutions ?? [] }, null, 2));
     process.exit(0);
   }
   for (const feedKey of manifest.feedKeys as RealtimeFeedKey[]) {

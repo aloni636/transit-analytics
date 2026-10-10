@@ -10,6 +10,7 @@ if (args[0].startsWith("-chdir=")) {
     data_lake_bucket: { value: "test-bucket" },
     realtime_fetcher_function_name: { value: "test-realtime" },
     realtime_feed_workflow_arn: { value: "arn:aws:states:eu-central-1:123456789012:stateMachine:realtime" },
+    static_feed_workflow_arn: { value: "arn:aws:states:eu-central-1:123456789012:stateMachine:static" },
     static_feed_schedules: { value: {
       GTFS_SWEDEN_3: { name: "original-sweden", groupName: "default" },
       GTFS_SWITZERLAND: { name: "original-swiss", groupName: "default" },
@@ -40,13 +41,22 @@ if (args[0].startsWith("-chdir=")) {
   if (process.env.SCHEDULES_GONE) throw new Error("ResourceNotFoundException");
   console.log("{}");
 } else if (args[0] === "stepfunctions" && args[1] === "start-execution") {
-  assert.equal(value("--state-machine-arn"), "arn:aws:states:eu-central-1:123456789012:stateMachine:realtime");
   const input = JSON.parse(value("--input"));
-  assert.equal(input.pollingSeconds, 60);
-  assert(Number.isFinite(Date.parse(input.stopAt)));
-  console.log(JSON.stringify({ executionArn: "arn:test:execution:parent" }));
+  if (value("--state-machine-arn").endsWith(":static")) {
+    assert.deepEqual(Object.keys(input), ["feedKeys", "scheduledTime"]);
+    assert.equal(input.feedKeys.length, 1);
+    assert(Number.isFinite(Date.parse(input.scheduledTime)));
+    console.log(JSON.stringify({ executionArn: "arn:test:execution:initial-" + input.feedKeys[0] }));
+  } else {
+    assert.equal(value("--state-machine-arn"), "arn:aws:states:eu-central-1:123456789012:stateMachine:realtime");
+    assert.equal(input.pollingSeconds, 60);
+    assert(Number.isFinite(Date.parse(input.stopAt)));
+    console.log(JSON.stringify({ executionArn: "arn:test:execution:parent" }));
+  }
 } else if (args[0] === "stepfunctions" && args[1] === "describe-execution") {
-  console.log(JSON.stringify(value("--execution-arn").endsWith("parent")
+  console.log(JSON.stringify(value("--execution-arn").includes(":initial-")
+    ? { status: process.env.FAIL_INITIAL_STATIC ? "FAILED" : "SUCCEEDED" }
+    : value("--execution-arn").endsWith("parent")
     ? { status: "SUCCEEDED", output: JSON.stringify({ ExecutionArn: "arn:test:execution:child" }) }
     : { status: "RUNNING" }));
 } else if (args[0] === "stepfunctions" && args[1] === "stop-execution") {
