@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -55,6 +56,28 @@ if (command === "validate") {
   } else {
     const startedAt = new Date(Math.floor(Date.now() / 1000) * 1000).toISOString();
     const stopAt = new Date(Date.parse(startedAt) + (command === "smoke" ? 120 : 172800) * 1000).toISOString();
+    const collectionName = "collection-" + randomUUID();
+    const staticKeys = [...new Set(arguments_.map((key) => realtimeFeeds[key as RealtimeFeedKey].staticFeedKey))];
+    const schedules = staticKeys.map((feedKey, index) => {
+      const template = outputs.static_feed_schedules?.value[feedKey];
+      if (!template) throw new Error("Missing static schedule template for " + feedKey + "; redeploy Terraform outputs.");
+      const source = aws("scheduler", "get-schedule", "--name", template.name, "--group-name", template.groupName);
+      if (!/^(cron|rate)\(/.test(source.ScheduleExpression)) throw new Error("Static template must be recurring: " + template.name);
+      return {
+        Name: collectionName + "-" + index,
+        GroupName: template.groupName,
+        ScheduleExpression: source.ScheduleExpression,
+        ScheduleExpressionTimezone: source.ScheduleExpressionTimezone,
+        FlexibleTimeWindow: source.FlexibleTimeWindow,
+        KmsKeyArn: source.KmsKeyArn,
+        State: "ENABLED", StartDate: startedAt, EndDate: stopAt, ActionAfterCompletion: "DELETE",
+        Target: {
+          ...source.Target,
+          Input: JSON.stringify({ ...JSON.parse(source.Target.Input), stopAt }),
+          RetryPolicy: { MaximumRetryAttempts: 0, MaximumEventAgeInSeconds: 60 },
+        },
+      };
+    });
     const manifest = {
       region, startedAt, stopAt, pollingSeconds: 60,
       feedKeys: arguments_,
@@ -62,20 +85,35 @@ if (command === "validate") {
       alarmPrefix: outputs.realtime_fetcher_function_name.value as string,
       stateMachineArn: outputs.realtime_feed_workflow_arn.value as string,
       executionArn: "",
+      staticSchedules: schedules.map((schedule, index) => ({
+        feedKey: staticKeys[index], name: schedule.Name, groupName: schedule.GroupName, arn: "",
+      })),
     };
     await mkdir(".collections", { recursive: true });
-    const path = ".collections/" + command + "-" + startedAt.replaceAll(":", "-") + ".json";
+    const path = ".collections/" + collectionName + ".json";
     await writeFile(path, JSON.stringify(manifest, null, 2) + "\n", { flag: "wx" });
     console.log("Collection manifest: " + path);
     const result = aws("stepfunctions", "start-execution",
       "--state-machine-arn", manifest.stateMachineArn,
-      "--name", "collection-" + startedAt.replaceAll(/[^0-9A-Za-z_-]/g, "-"),
+      "--name", collectionName,
       "--input", JSON.stringify({ feedKeys: manifest.feedKeys, pollingSeconds: 60, stopAt }));
     manifest.executionArn = result.executionArn;
     await writeFile(path, JSON.stringify(manifest, null, 2) + "\n");
     console.log(JSON.stringify({ feedKeys: manifest.feedKeys, executionArn: result.executionArn, stopAt }));
+    for (const [index, schedule] of schedules.entries()) {
+      let created;
+      try {
+        created = aws("scheduler", "create-schedule", "--cli-input-json", JSON.stringify(schedule));
+      } catch (error) {
+        console.error("Partial collection launch. Inspect " + path + "; stop realtime and remove temporary schedules with pnpm collection stop " + path);
+        throw error;
+      }
+      manifest.staticSchedules[index].arn = created.ScheduleArn;
+      await writeFile(path, JSON.stringify(manifest, null, 2) + "\n");
+      console.log(JSON.stringify(manifest.staticSchedules[index]));
+    }
   }
-} else if (command === "status" && manifestPath) {
+} else if ((command === "status" || command === "stop") && manifestPath) {
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   if (region !== manifest.region) throw new Error("Set AWS_REGION to " + manifest.region);
   const report: Record<string, unknown>[] = [];
@@ -91,6 +129,20 @@ if (command === "validate") {
     const child = output.ExecutionArn ?? output.executionArn;
     if (execution.status !== "SUCCEEDED" || !child) break;
     current = child;
+  }
+  if (command === "stop") {
+    // Remove only this collection's copies, never the Terraform-managed templates.
+    for (const schedule of manifest.staticSchedules ?? []) {
+      if (!schedule.name.startsWith("collection-")) throw new Error("Not a temporary collection schedule: " + schedule.name);
+      try {
+        aws("scheduler", "delete-schedule", "--name", schedule.name, "--group-name", schedule.groupName);
+      } catch (error) {
+        if (!(error instanceof Error) || !("stderr" in error) || !String(error.stderr).includes("ResourceNotFoundException")) throw error;
+      }
+    }
+    if (execution.status === "RUNNING") aws("stepfunctions", "stop-execution", "--execution-arn", current);
+    console.log(JSON.stringify({ stoppedExecutionArn: current, deletedStaticSchedules: manifest.staticSchedules ?? [] }));
+    process.exit(0);
   }
   for (const feedKey of manifest.feedKeys as RealtimeFeedKey[]) {
     const prefix = realtimeFeeds[feedKey].objectPrefix;
@@ -131,7 +183,7 @@ if (command === "validate") {
       "--history-item-type", "StateUpdate");
     alarmHistory.push(...history.AlarmHistoryItems);
   }
-  console.log(JSON.stringify({ stopAt: manifest.stopAt, report, alarms: alarms.MetricAlarms, alarmHistory }, null, 2));
+  console.log(JSON.stringify({ stopAt: manifest.stopAt, staticSchedules: manifest.staticSchedules ?? [], report, alarms: alarms.MetricAlarms, alarmHistory }, null, 2));
 } else {
-  throw new Error("Usage: pnpm collection <validate|test-notifications|notifications|smoke FEED_KEYS...|start FEED_KEYS...|status MANIFEST>");
+  throw new Error("Usage: pnpm collection <validate|test-notifications|notifications|smoke FEED_KEYS...|start FEED_KEYS...|status MANIFEST|stop MANIFEST>");
 }
