@@ -10,6 +10,7 @@ import { assertFetcherEvent, type FetcherEvent, type FeedKey } from "@transit-an
 type Event = FetcherEvent & {
   stateMachineArn: string;
   scheduleArn: string;
+  stopAt?: string;
 };
 
 const sfn = new SFNClient({});
@@ -36,6 +37,14 @@ export function createWorkflowInput(event: Event): string {
 
 export const handler: Handler<Event, void> = async (event) => {
   assertFetcherEvent(event);
+  if (event.stopAt !== undefined) {
+    const deadline = Date.parse(event.stopAt);
+    if (!Number.isFinite(deadline)) throw new Error("Invalid collection stopAt.");
+    if (Date.now() >= deadline || Date.parse(event.scheduledTime) >= deadline) {
+      console.info({ event: "workflow.collection_expired", scheduleArn: event.scheduleArn });
+      return;
+    }
+  }
   const executionName = createExecutionName(
     event.feedKeys,
     event.scheduledTime,

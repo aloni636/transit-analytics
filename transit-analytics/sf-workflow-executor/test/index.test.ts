@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createExecutionName, createWorkflowInput } from "../index.js";
+import { createExecutionName, createWorkflowInput, handler } from "../index.js";
+import type { Context } from "aws-lambda";
 
 test("creates a deterministic Step Functions execution name", () => {
   const first = createExecutionName(
@@ -47,4 +48,21 @@ test("batch execution names remain bounded and distinguish feeds and scheduled o
   assert.match(name, /^[0-9A-Za-z_-]+$/);
   assert.notEqual(name, createExecutionName([...keys], "2026-08-10T12:00:00Z"));
   assert.notEqual(name, createExecutionName(["GTFS_SWITZERLAND", "GTFS_SWEDEN_3"], timestamp));
+});
+
+test("ignores expired collection deliveries before starting a workflow", async (t) => {
+  const log = t.mock.method(console, "info", () => {});
+  const now = Date.now();
+  for (const event of [
+    { scheduledTime: new Date(now - 120_000).toISOString(), stopAt: new Date(now - 60_000).toISOString() },
+    { scheduledTime: new Date(now + 120_000).toISOString(), stopAt: new Date(now + 60_000).toISOString() },
+  ]) {
+    await handler({ ...event, feedKeys: ["GTFS_SWITZERLAND"], scheduleArn: "temporary", stateMachineArn: "unused" }, {} as Context, () => {});
+  }
+  assert.equal(log.mock.calls.length, 2);
+  assert(log.mock.calls.every((call) => call.arguments[0].event === "workflow.collection_expired"));
+  await assert.rejects(async () => handler({
+    scheduledTime: new Date(now).toISOString(), stopAt: "invalid", feedKeys: ["GTFS_SWITZERLAND"],
+    scheduleArn: "temporary", stateMachineArn: "unused",
+  }, {} as Context, () => {}), /Invalid collection stopAt/);
 });

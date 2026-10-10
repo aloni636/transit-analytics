@@ -18,6 +18,14 @@ output "static_feed_workflow_arn" {
   value       = aws_sfn_state_machine.static_feed.arn
 }
 
+output "static_feed_schedules" {
+  description = "Existing static schedules used as templates for bounded collections."
+  value = { for key, schedule in aws_scheduler_schedule.static_feed : key => {
+    name      = schedule.name
+    groupName = schedule.group_name
+  } }
+}
+
 output "trafiklab_secret_arn" {
   description = "Provider-scoped secret read by the static fetcher."
   value       = aws_secretsmanager_secret.provider["trafiklab"].arn

@@ -18,6 +18,11 @@ output "static_feed_workflow_arn" {
   value       = module.transit_analytics.static_feed_workflow_arn
 }
 
+output "static_feed_schedules" {
+  description = "Static schedule templates for temporary collection schedules."
+  value       = module.transit_analytics.static_feed_schedules
+}
+
 output "trafiklab_secret_arn" {
   description = "ARN of the dev Trafiklab provider secret."
   value       = module.transit_analytics.trafiklab_secret_arn
