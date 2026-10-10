@@ -51,9 +51,9 @@ data "aws_iam_policy_document" "static_fetcher" {
   }
 
   statement {
-    sid       = "ReadTrafiklabCredentials"
+    sid       = "ReadProviderCredentials"
     actions   = ["secretsmanager:GetSecretValue"]
-    resources = [aws_secretsmanager_secret.provider["trafiklab"].arn]
+    resources = [for secret in aws_secretsmanager_secret.provider : secret.arn]
   }
 
   statement {
@@ -73,7 +73,7 @@ resource "aws_iam_role_policy" "static_fetcher" {
 }
 
 resource "aws_secretsmanager_secret" "provider" {
-  for_each = toset(["trafiklab"])
+  for_each = toset(["trafiklab", "opentransportdata"])
 
   name        = "${local.application_name}/${var.environment}/providers/${each.key}"
   description = "Credentials for the ${each.key} transit data provider."
@@ -86,10 +86,20 @@ resource "aws_secretsmanager_secret" "provider" {
 resource "aws_secretsmanager_secret_version" "trafiklab" {
   secret_id = aws_secretsmanager_secret.provider["trafiklab"].id
   secret_string_wo = jsonencode({
-    GTFS_SWEDEN_3_STATIC_DATA = var.gtfs_sweden_3_static_data
-    GTFS_SVERIGE_2            = var.gtfs_sverige_2
+    GTFS_SWEDEN_3_STATIC_DATA         = var.gtfs_sweden_3_static_data
+    GTFS_SVERIGE_2                    = var.gtfs_sverige_2
+    GTFS_SWEDEN_3_REALTIME_DATA       = var.gtfs_sweden_3_realtime_data
+    GTFS_SWEDEN_3_SERVICE_ALERTS_DATA = var.gtfs_sweden_3_service_alerts_data
   })
   secret_string_wo_version = var.trafiklab_secret_version
+}
+
+resource "aws_secretsmanager_secret_version" "opentransportdata" {
+  secret_id = aws_secretsmanager_secret.provider["opentransportdata"].id
+  secret_string_wo = jsonencode({
+    GTFS_SWITZERLAND_REALTIME_DATA = var.gtfs_switzerland_realtime_data
+  })
+  secret_string_wo_version = var.opentransportdata_secret_version
 }
 
 resource "aws_cloudwatch_log_group" "static_fetcher" {
@@ -115,9 +125,11 @@ resource "aws_lambda_function" "static_fetcher" {
 
   environment {
     variables = {
-      DESTINATION_BUCKET   = aws_s3_bucket.data_lake.id
-      NODE_OPTIONS         = "--enable-source-maps" # see `esbuild.mjs`
-      TRAFIKLAB_SECRET_ARN = aws_secretsmanager_secret.provider["trafiklab"].arn
+      DESTINATION_BUCKET           = aws_s3_bucket.data_lake.id
+      GTFS_USER_AGENT              = "transit-analytics/static-fetcher"
+      NODE_OPTIONS                 = "--enable-source-maps" # see `esbuild.mjs`
+      TRAFIKLAB_SECRET_ARN         = aws_secretsmanager_secret.provider["trafiklab"].arn
+      OPENTRANSPORTDATA_SECRET_ARN = aws_secretsmanager_secret.provider["opentransportdata"].arn
     }
   }
 

@@ -22,3 +22,9 @@ output "trafiklab_secret_arn" {
   description = "Provider-scoped secret read by the static fetcher."
   value       = aws_secretsmanager_secret.provider["trafiklab"].arn
 }
+
+
+output "opentransportdata_secret_arn" {
+  description = "Provider-scoped secret read by the fetcher for Swiss realtime data."
+  value       = aws_secretsmanager_secret.provider["opentransportdata"].arn
+}

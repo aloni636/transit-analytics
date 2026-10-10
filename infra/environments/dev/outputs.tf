@@ -22,3 +22,9 @@ output "trafiklab_secret_arn" {
   description = "ARN of the dev Trafiklab provider secret."
   value       = module.transit_analytics.trafiklab_secret_arn
 }
+
+
+output "opentransportdata_secret_arn" {
+  description = "ARN of the dev OpenTransportData provider secret."
+  value       = module.transit_analytics.opentransportdata_secret_arn
+}
