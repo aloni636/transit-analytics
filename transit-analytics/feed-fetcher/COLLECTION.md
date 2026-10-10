@@ -24,22 +24,28 @@ pnpm collection notifications
 ```
 
 Confirm that the test push appeared on the phone. An AWS notification event alone
-does not establish phone receipt. Then run `pnpm collection smoke` and inspect
-its manifest with `pnpm collection status .collections/<smoke-manifest>.json`.
-All 12 feeds should complete and have protobuf snapshots with metadata sidecars.
+does not establish phone receipt. Then run a short collection for explicitly selected feeds:
 
-Run `pnpm collection start` for all Swedish and Swiss TripUpdates at a 60-second
-wait and one shared deadline 48 hours after launch. The command prints and saves
-each execution ARN immediately in `.collections/`, including partial launches.
+```sh
+pnpm collection smoke GTFS_SWEDEN_3_TRIP_UPDATES_SL GTFS_SWITZERLAND_TRIP_UPDATES
+```
+
+Inspect
+its manifest with `pnpm collection status .collections/<smoke-manifest>.json`.
+Both feeds should have protobuf snapshots with metadata sidecars.
+
+Run `pnpm collection start <FEED_KEY> [FEED_KEY ...]` for the feeds you want to collect
+at a 60-second wait and one shared deadline 48 hours after launch. No feeds are
+selected by default. The command prints and saves one execution ARN in `.collections/`.
 Inspect progress and final completion with `pnpm collection status <manifest>`.
 Set `AWS_REGION` if using a region other than the dev default `eu-central-1`.
 
-For a manually selected feed, use **Start execution** on the realtime state
+For manually selected feeds, use **Start execution** on the realtime state
 machine in the Step Functions Console:
 
 ```json
 {
-  "feedKey": "GTFS_SWITZERLAND_TRIP_UPDATES",
+  "feedKeys": ["GTFS_SWEDEN_3_TRIP_UPDATES_SL", "GTFS_SWITZERLAND_TRIP_UPDATES"],
   "pollingSeconds": 60,
   "stopAt": "2026-10-12T18:00:00Z"
 }
@@ -48,10 +54,12 @@ machine in the Step Functions Console:
 Replace `stopAt` with the desired datetime, including its timezone. The workflow
 uses whole-second precision. Each polling wait begins after the previous attempt;
 a two-second fetch with a 60-second wait gives about 62 seconds between samples.
-Failures appear in execution history and collection continues at the next sample.
+Each invocation fetches the selected feeds concurrently. If one fails, the others
+still finish and retain their uploads; the invocation reports failure. Failures
+appear in execution history and collection continues at the next sample.
 
 Use the manifest status report or the Console's linked continuation executions
-to locate the currently running execution. To stop a feed early:
+to locate the currently running execution. To stop the entire collection early:
 
 ```sh
 aws stepfunctions stop-execution --region eu-central-1 \

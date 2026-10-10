@@ -30,6 +30,7 @@ async function simulate(initial: Record<string, unknown>, failSamples = false) {
   let historyUpperBound = 2;
   let failures = 0;
   const samples: number[] = [];
+  const variables: Record<string, unknown> = {};
   const expressions = new Map<string, ReturnType<typeof jsonata>>();
   const evaluate = async (source: string) => {
     let expression = expressions.get(source);
@@ -38,7 +39,7 @@ async function simulate(initial: Record<string, unknown>, failSamples = false) {
       expression.registerFunction("millis", () => now, "<:n>");
       expressions.set(source, expression);
     }
-    return expression.evaluate({}, { states: { input: data } });
+    return expression.evaluate({}, { ...variables, states: { input: data, context: { State: { EnteredTime: new Date(now).toISOString() } } } });
   };
   for (let transitions = 0; transitions < 10_000; transitions++) {
     const state = definition.States[stateName];
@@ -48,39 +49,44 @@ async function simulate(initial: Record<string, unknown>, failSamples = false) {
     if (state.Type === "Choice") {
       let next = state.Default;
       for (const choice of state.Choices) {
-        const matches = choice.Condition
-          ? await evaluate(choice.Condition)
-          : data.iteration.value >= choice.NumericGreaterThanEquals;
-        if (matches) { next = choice.Next; break; }
+        if (await evaluate(choice.Condition)) {
+          for (const [key, value] of Object.entries(choice.Assign ?? {})) {
+            variables[key] = typeof value === "string" ? await evaluate(value) : value;
+          }
+          next = choice.Next;
+          break;
+        }
       }
       stateName = next;
       continue;
     }
-    if (state.Type === "Pass") {
-      if (state.Output) data = await evaluate(state.Output);
-      else {
-        assert.equal(state.Parameters["value.$"], "States.MathAdd($.iteration.value, 1)");
-        data.iteration.value += 1;
-      }
-    } else if (state.Type === "Wait") {
+    if (state.Type === "Wait") {
       now = Math.max(now, Date.parse(await evaluate(state.Timestamp)));
     } else if (state.Type === "Task" && state.Resource.endsWith("lambda:invoke")) {
-      assert.equal(state.Parameters.Payload["scheduledTime.$"], "$$.State.EnteredTime");
-      assert.deepEqual(Object.keys(state.Parameters.Payload), ["feedKeys.$", "scheduledTime.$"]);
+      assert.equal(await evaluate(state.Arguments.Payload.scheduledTime), new Date(now).toISOString());
+      assert.deepEqual(await evaluate(state.Arguments.Payload.feedKeys), input.feedKeys);
+      assert.deepEqual(Object.keys(state.Arguments.Payload), ["feedKeys", "scheduledTime"]);
       assert.equal(state.Retry, undefined);
       samples.push(now);
       now += 2_000;
       if (failSamples) {
         failures++;
+        for (const [key, value] of Object.entries(state.Catch[0].Assign)) {
+          variables[key] = await evaluate(value as string);
+        }
+        data = await evaluate(state.Catch[0].Output);
         stateName = state.Catch[0].Next;
         continue;
       }
+      for (const [key, value] of Object.entries(state.Assign)) variables[key] = await evaluate(value as string);
+      data = await evaluate(state.Output);
     } else if (state.Type === "Task" && state.Resource.endsWith("states:startExecution")) {
       assert.equal(state.End, true);
       assert.equal(state.Parameters["StateMachineArn.$"], "$$.StateMachine.Id");
       assert.equal(state.Parameters["Name.$"], "States.Hash($$.Execution.Id, 'SHA-256')");
       assert.equal(state.Parameters.Input["stopAt.$"], "$.stopAt");
-      return { continued: true, samples, now, failures, historyUpperBound, iteration: data.iteration.value };
+      assert.equal(state.Parameters.Input["feedKeys.$"], "$.feedKeys");
+      return { continued: true, samples, now, failures, historyUpperBound, iteration: variables.iteration };
     } else throw new Error("Unexpected state: " + stateName);
     stateName = state.Next;
   }
@@ -90,6 +96,9 @@ async function simulate(initial: Record<string, unknown>, failSamples = false) {
 test("rejects unknown/static feeds, invalid intervals and malformed stop times before fetching", async () => {
   for (const override of [
     { feedKeys: ["UNKNOWN"] }, { feedKeys: ["GTFS_SWITZERLAND"] },
+    { feedKeys: [] }, { feedKeys: input.feedKeys[0] },
+    { feedKeys: [input.feedKeys[0], input.feedKeys[0]] }, { feedKeys: [123] },
+    { feedKeys: [input.feedKeys[0], "UNKNOWN"] },
     { pollingSeconds: 30 }, { pollingSeconds: 60.5 }, { pollingSeconds: "60" },
     { stopAt: "tomorrow" }, { stopAt: "2026-10-10T12:00:00" },
   ]) {
@@ -97,6 +106,13 @@ test("rejects unknown/static feeds, invalid intervals and malformed stop times b
     assert.equal(result.rejected, true);
     assert.equal(result.samples.length, 0);
   }
+});
+
+test("uses only three states per polling cycle and no Pass states", () => {
+  assert(!Object.values(definition.States).some((state: any) => state.Type === "Pass"));
+  assert.equal(definition.States.FetchRealtimeFeed.Next, "WaitForSample");
+  assert.equal(definition.States.WaitForSample.Next, "CheckCollection");
+  assert.equal(definition.States.CheckCollection.Default, "FetchRealtimeFeed");
 });
 
 test("stops at the deadline and caps the last wait instead of making an extra sample", async () => {

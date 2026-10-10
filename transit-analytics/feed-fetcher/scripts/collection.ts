@@ -5,7 +5,14 @@ import { join } from "node:path";
 import { parse } from "yaml";
 import { realtimeFeeds, type RealtimeFeedKey } from "@transit-analytics/shared/feeds";
 
-const [command, manifestPath] = process.argv.slice(2);
+const [command, ...arguments_] = process.argv.slice(2);
+const [manifestPath] = arguments_;
+if (command === "start" || command === "smoke") {
+  if (!arguments_.length || new Set(arguments_).size !== arguments_.length ||
+    arguments_.some((key) => !Object.hasOwn(realtimeFeeds, key))) {
+    throw new Error("Supply unique realtime feed keys: pnpm collection " + command + " <FEED_KEY> [FEED_KEY ...]");
+  }
+}
 const region = process.env.AWS_REGION ?? "eu-central-1";
 function aws(service: string, action: string, ...args: string[]) {
   return JSON.parse(execFileSync("aws", [service, action, ...args,
@@ -48,48 +55,45 @@ if (command === "validate") {
   } else {
     const startedAt = new Date(Math.floor(Date.now() / 1000) * 1000).toISOString();
     const stopAt = new Date(Date.parse(startedAt) + (command === "smoke" ? 120 : 172800) * 1000).toISOString();
-    const feeds = Object.keys(realtimeFeeds).filter((key) =>
-      key.startsWith("GTFS_SWEDEN_3_TRIP_UPDATES_") || key === "GTFS_SWITZERLAND_TRIP_UPDATES",
-    ) as RealtimeFeedKey[];
     const manifest = {
       region, startedAt, stopAt, pollingSeconds: 60,
+      feedKeys: arguments_,
       bucket: outputs.data_lake_bucket.value as string,
       alarmPrefix: outputs.realtime_fetcher_function_name.value as string,
       stateMachineArn: outputs.realtime_feed_workflow_arn.value as string,
-      executions: [] as { feedKey: RealtimeFeedKey; executionArn: string }[],
+      executionArn: "",
     };
     await mkdir(".collections", { recursive: true });
     const path = ".collections/" + command + "-" + startedAt.replaceAll(":", "-") + ".json";
     await writeFile(path, JSON.stringify(manifest, null, 2) + "\n", { flag: "wx" });
     console.log("Collection manifest: " + path);
-    for (const feedKey of feeds) {
-      const result = aws("stepfunctions", "start-execution",
-        "--state-machine-arn", manifest.stateMachineArn,
-        "--name", feedKey + "-" + startedAt.replaceAll(/[^0-9A-Za-z_-]/g, "-"),
-        "--input", JSON.stringify({ feedKey, pollingSeconds: 60, stopAt }));
-      manifest.executions.push({ feedKey, executionArn: result.executionArn });
-      await writeFile(path, JSON.stringify(manifest, null, 2) + "\n");
-      console.log(JSON.stringify({ feedKey, executionArn: result.executionArn, stopAt }));
-    }
+    const result = aws("stepfunctions", "start-execution",
+      "--state-machine-arn", manifest.stateMachineArn,
+      "--name", "collection-" + startedAt.replaceAll(/[^0-9A-Za-z_-]/g, "-"),
+      "--input", JSON.stringify({ feedKeys: manifest.feedKeys, pollingSeconds: 60, stopAt }));
+    manifest.executionArn = result.executionArn;
+    await writeFile(path, JSON.stringify(manifest, null, 2) + "\n");
+    console.log(JSON.stringify({ feedKeys: manifest.feedKeys, executionArn: result.executionArn, stopAt }));
   }
 } else if (command === "status" && manifestPath) {
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   if (region !== manifest.region) throw new Error("Set AWS_REGION to " + manifest.region);
   const report: Record<string, unknown>[] = [];
   const endMs = Math.min(Date.now(), Date.parse(manifest.stopAt));
-  for (const initial of manifest.executions) {
-    let current = initial.executionArn;
-    let execution: any;
-    const chain: string[] = [];
-    while (true) {
-      chain.push(current);
-      execution = aws("stepfunctions", "describe-execution", "--execution-arn", current);
-      const output = execution.output ? JSON.parse(execution.output) : {};
-      const child = output.ExecutionArn ?? output.executionArn;
-      if (execution.status !== "SUCCEEDED" || !child) break;
-      current = child;
-    }
-    const prefix = realtimeFeeds[initial.feedKey as RealtimeFeedKey].objectPrefix;
+  let current = manifest.executionArn;
+  if (!current) throw new Error("Collection did not start; the manifest has no execution ARN.");
+  let execution: any;
+  const chain: string[] = [];
+  while (true) {
+    chain.push(current);
+    execution = aws("stepfunctions", "describe-execution", "--execution-arn", current);
+    const output = execution.output ? JSON.parse(execution.output) : {};
+    const child = output.ExecutionArn ?? output.executionArn;
+    if (execution.status !== "SUCCEEDED" || !child) break;
+    current = child;
+  }
+  for (const feedKey of manifest.feedKeys as RealtimeFeedKey[]) {
+    const prefix = realtimeFeeds[feedKey].objectPrefix;
     const keys = new Set<string>();
     const firstDay = new Date(manifest.startedAt);
     firstDay.setUTCHours(0, 0, 0, 0);
@@ -109,7 +113,7 @@ if (command === "validate") {
       ? [{ after: new Date(samples[index - 1].time).toISOString(), seconds: (sample.time - samples[index - 1].time) / 1000 }]
       : []);
     report.push({
-      feedKey: initial.feedKey, chain, activeExecutionArn: current, status: execution.status,
+      feedKey, chain, activeExecutionArn: current, status: execution.status,
       samples: samples.length,
       missingMetadata: samples.filter(({ key }) => !keys.has(key + ".metadata.json")).map(({ key }) => key),
       firstSampleAt: samples[0] ? new Date(samples[0].time).toISOString() : null,
@@ -129,5 +133,5 @@ if (command === "validate") {
   }
   console.log(JSON.stringify({ stopAt: manifest.stopAt, report, alarms: alarms.MetricAlarms, alarmHistory }, null, 2));
 } else {
-  throw new Error("Usage: pnpm collection <validate|test-notifications|notifications|smoke|start|status MANIFEST>");
+  throw new Error("Usage: pnpm collection <validate|test-notifications|notifications|smoke FEED_KEYS...|start FEED_KEYS...|status MANIFEST>");
 }
