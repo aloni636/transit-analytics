@@ -3,6 +3,11 @@ locals {
 }
 
 provider "aws" {
+  alias  = "notifications"
+  region = "us-east-1"
+}
+
+provider "aws" {
   region = var.aws_region
 
   default_tags {

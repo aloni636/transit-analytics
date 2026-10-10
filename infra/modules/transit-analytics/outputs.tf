@@ -35,3 +35,11 @@ output "opentransportdata_secret_arn" {
 output "realtime_fetcher_function_name" {
   value = aws_lambda_function.realtime_fetcher.function_name
 }
+
+output "notification_configuration_arn" {
+  value = aws_notifications_notification_configuration.realtime.arn
+}
+
+output "notification_test_alarm_name" {
+  value = aws_cloudwatch_metric_alarm.notification_test.alarm_name
+}

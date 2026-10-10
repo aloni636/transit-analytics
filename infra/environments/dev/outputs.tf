@@ -35,3 +35,11 @@ output "opentransportdata_secret_arn" {
 output "realtime_fetcher_function_name" {
   value = module.transit_analytics.realtime_fetcher_function_name
 }
+
+output "notification_configuration_arn" {
+  value = module.transit_analytics.notification_configuration_arn
+}
+
+output "notification_test_alarm_name" {
+  value = module.transit_analytics.notification_test_alarm_name
+}

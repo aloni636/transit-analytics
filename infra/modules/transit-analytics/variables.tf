@@ -94,3 +94,9 @@ variable "opentransportdata_secret_version" {
     error_message = "opentransportdata_secret_version must be at least 1."
   }
 }
+
+variable "mobile_notification_channel_arns" {
+  description = "Registered AWS Console Mobile device channel ARNs to receive realtime alarms."
+  type        = set(string)
+  default     = []
+}
