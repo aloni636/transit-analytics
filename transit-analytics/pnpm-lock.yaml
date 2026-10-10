@@ -81,9 +81,6 @@ importers:
 
   static-fetcher:
     dependencies:
-      '@aws-lambda-powertools/parameters':
-        specifier: 'catalog:'
-        version: 2.34.0(@aws-sdk/client-secrets-manager@3.1096.0)
       '@aws-sdk/client-s3':
         specifier: 'catalog:'
         version: 3.1096.0

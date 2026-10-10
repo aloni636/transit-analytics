@@ -14,7 +14,6 @@ import { createServer } from "node:http";
 import { pipeline } from "node:stream/promises";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import type { Feed } from "../feeds.js";
 import { fetchStaticFeed } from "../fetcher.js";
 
 const fixturePath = fileURLToPath(
@@ -62,6 +61,8 @@ test("fetches and extracts a GTFS provider stream into RustFS", async () => {
     response.writeHead(200, {
       "content-type": "application/zip",
       "content-length": fixture.size,
+      etag: "\"fixture-etag\"",
+      "last-modified": "Sun, 09 Aug 2026 12:00:00 GMT",
     });
     void pipeline(createReadStream(fixturePath), response).catch(
       (error: unknown) => {
@@ -75,26 +76,17 @@ test("fetches and extracts a GTFS provider stream into RustFS", async () => {
   );
   let objectKeys: string[] = [];
   let bucketCreated = false;
+  const previousTestUrl = process.env.INTEGRATION_TEST_STATIC_URL;
 
   try {
     await s3.send(new CreateBucketCommand({ Bucket: bucket }));
     bucketCreated = true;
     const address = provider.address();
     assert(address && typeof address === "object");
-    const mockFeed = {
-      objectPrefix: "raw/integration/gtfs-static/mock-feed",
-      createRequest: () =>
-        new Request(
-          `http://127.0.0.1:${address.port}/gtfs-static.zip`,
-        ),
-    } as const satisfies Feed;
-
+    process.env.INTEGRATION_TEST_STATIC_URL =
+      `http://127.0.0.1:${address.port}/gtfs-static.zip`;
     const result = await fetchStaticFeed(
-      {
-        key: "INTEGRATION_TEST",
-        objectPrefix: mockFeed.objectPrefix,
-        request: mockFeed.createRequest(),
-      },
+      "INTEGRATION_TEST_STATIC",
       scheduledTime,
       s3,
       bucket,
@@ -105,7 +97,7 @@ test("fetches and extracts a GTFS provider stream into RustFS", async () => {
     });
     assert.equal(
       result.key,
-      `${mockFeed.objectPrefix}/2026/08/09/20260809T120000Z.zip`,
+      "raw/integration/gtfs-static/mock-feed/2026/08/09/20260809T120000Z.zip",
     );
 
     const stored = await s3.send(
@@ -124,9 +116,10 @@ test("fetches and extracts a GTFS provider stream into RustFS", async () => {
     );
     objectKeys = objects.Contents?.flatMap(({ Key }) => (Key ? [Key] : [])) ?? [];
     const extractedPrefix = result.key.slice(0, -".zip".length);
-    assert.equal(objectKeys.length, 10);
+    assert.equal(objectKeys.length, 11);
     assert(objectKeys.includes(result.key));
     assert(objectKeys.includes(`${extractedPrefix}/feed_info.txt`));
+    assert(objectKeys.includes(result.metadataKey));
 
     const extracted = await s3.send(
       new GetObjectCommand({
@@ -136,6 +129,19 @@ test("fetches and extracts a GTFS provider stream into RustFS", async () => {
     );
     assert.equal(extracted.ContentType, "application/octet-stream");
     assert.equal(extracted.ContentLength, 138);
+    const metadata = await s3.send(
+      new GetObjectCommand({ Bucket: bucket, Key: result.metadataKey }),
+    );
+    assert(metadata.Body);
+    const metadataValue = JSON.parse(
+      await metadata.Body.transformToString(),
+    ) as { response: { etag?: string; lastModified?: string }; byteLength?: number };
+    assert.equal(metadataValue.response.etag, "\"fixture-etag\"");
+    assert.equal(
+      metadataValue.response.lastModified,
+      "Sun, 09 Aug 2026 12:00:00 GMT",
+    );
+    assert.equal(metadataValue.byteLength, fixture.size);
   } finally {
     if (bucketCreated) {
       const objects = await s3.send(
@@ -153,6 +159,11 @@ test("fetches and extracts a GTFS provider stream into RustFS", async () => {
     }
     if (bucketCreated) {
       await s3.send(new DeleteBucketCommand({ Bucket: bucket })).catch(() => { });
+    }
+    if (previousTestUrl === undefined) {
+      delete process.env.INTEGRATION_TEST_STATIC_URL;
+    } else {
+      process.env.INTEGRATION_TEST_STATIC_URL = previousTestUrl;
     }
     await new Promise<void>((resolve, reject) =>
       provider.close((error) => (error ? reject(error) : resolve())),

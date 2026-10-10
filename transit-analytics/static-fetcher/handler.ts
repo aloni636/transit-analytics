@@ -1,12 +1,10 @@
 import { S3Client } from "@aws-sdk/client-s3";
 import type { Handler } from "aws-lambda";
-import { getSecretsManagerKey } from "./credentials.js";
 import {
-  assertStaticFetcherEvent,
-  feeds,
-  type StaticFetcherEvent,
-} from "./feeds.js";
-import { fetchStaticFeed } from "./fetcher.js";
+  assertFetcherEvent,
+  type FetcherEvent,
+} from "@transit-analytics/shared/feeds";
+import { fetchStaticFeed, UpstreamResponseError } from "./fetcher.js";
 
 const bucket = process.env.DESTINATION_BUCKET;
 if (!bucket) {
@@ -19,24 +17,39 @@ if (!bucket) {
 const s3 = new S3Client({});
 
 export const handler: Handler<
-  StaticFetcherEvent,
+  FetcherEvent,
   Awaited<ReturnType<typeof fetchStaticFeed>>
-> = async (event) => {
-  assertStaticFetcherEvent(event);
-  const feed = feeds[event.feedKey];
-  const request =
-    "credentialKey" in feed
-      ? feed.createRequest(await getSecretsManagerKey(feed.credentialKey))
-      : feed.createRequest();
-
-  return fetchStaticFeed(
-    {
-      key: event.feedKey,
-      objectPrefix: feed.objectPrefix,
-      request,
-    },
-    new Date(event.scheduledTime),
-    s3,
-    bucket,
-  );
+> = async (event, context) => {
+  assertFetcherEvent(event);
+  const remainingMs = context.getRemainingTimeInMillis();
+  const controller = new AbortController();
+  const cancel = () => controller.abort(new Error("Lambda execution deadline approaching"));
+  const timer = setTimeout(cancel, Math.max(0, remainingMs - 1_000));
+  timer.unref();
+  if (remainingMs <= 1_000) cancel();
+  try {
+    return await fetchStaticFeed(
+      event.feedKey,
+      new Date(event.scheduledTime),
+      s3,
+      bucket,
+      controller.signal,
+    );
+  } catch (error) {
+    console.error({
+      event: error instanceof UpstreamResponseError && error.rateLimited
+        ? "fetch.rate_limited"
+        : "fetch.invocation_failed",
+      feedKey: event.feedKey,
+      requestId: context.awsRequestId,
+      remainingMs: context.getRemainingTimeInMillis(),
+      errorType: error instanceof Error ? error.name : "UnknownError",
+      ...(error instanceof UpstreamResponseError
+        ? { status: error.status, retryAfterMs: error.retryAfterMs }
+        : {}),
+    });
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 };

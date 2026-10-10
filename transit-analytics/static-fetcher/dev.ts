@@ -6,8 +6,7 @@ import {
 import { config } from "dotenv";
 import { performance } from "node:perf_hooks";
 import pRetry from "p-retry";
-import { getLocalEnvKey } from "./credentials.js";
-import { assertStaticFetcherEvent, feeds } from "./feeds.js";
+import { assertFetcherEvent } from "@transit-analytics/shared/feeds";
 import { fetchStaticFeed } from "./fetcher.js";
 
 async function ensureBucket(
@@ -39,12 +38,7 @@ const event: unknown = {
   feedKey: process.argv[2],
   scheduledTime,
 };
-assertStaticFetcherEvent(event);
-const feed = feeds[event.feedKey];
-const request =
-  "credentialKey" in feed
-    ? feed.createRequest(getLocalEnvKey(feed.credentialKey))
-    : feed.createRequest();
+assertFetcherEvent(event);
 
 const bucket = process.env.DESTINATION_BUCKET ?? "transit-analytics-dev";
 const s3 = new S3Client({
@@ -62,11 +56,7 @@ await ensureBucket(s3, bucket);
 const eventLoopUtilizationStartedAt = performance.eventLoopUtilization();
 
 const result = await fetchStaticFeed(
-  {
-    key: event.feedKey,
-    objectPrefix: feed.objectPrefix,
-    request,
-  },
+  event.feedKey,
   new Date(event.scheduledTime),
   s3,
   bucket,
