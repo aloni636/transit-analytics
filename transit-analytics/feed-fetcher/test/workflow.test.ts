@@ -17,7 +17,7 @@ const definition = parse(template
   .replace("${realtime_fetcher_arn}", "arn:aws:lambda:eu-central-1:123456789012:function:realtime"));
 const start = Date.parse("2026-10-10T12:00:00Z");
 const input = {
-  feedKey: "GTFS_SWITZERLAND_TRIP_UPDATES",
+  feedKeys: ["GTFS_SWEDEN_3_TRIP_UPDATES_SL", "GTFS_SWITZERLAND_TRIP_UPDATES"],
   pollingSeconds: 60,
   stopAt: new Date(start + 172_800_000).toISOString(),
 };
@@ -66,7 +66,7 @@ async function simulate(initial: Record<string, unknown>, failSamples = false) {
       now = Math.max(now, Date.parse(await evaluate(state.Timestamp)));
     } else if (state.Type === "Task" && state.Resource.endsWith("lambda:invoke")) {
       assert.equal(state.Parameters.Payload["scheduledTime.$"], "$$.State.EnteredTime");
-      assert.deepEqual(Object.keys(state.Parameters.Payload), ["feedKey.$", "scheduledTime.$"]);
+      assert.deepEqual(Object.keys(state.Parameters.Payload), ["feedKeys.$", "scheduledTime.$"]);
       assert.equal(state.Retry, undefined);
       samples.push(now);
       now += 2_000;
@@ -89,7 +89,7 @@ async function simulate(initial: Record<string, unknown>, failSamples = false) {
 
 test("rejects unknown/static feeds, invalid intervals and malformed stop times before fetching", async () => {
   for (const override of [
-    { feedKey: "UNKNOWN" }, { feedKey: "GTFS_SWITZERLAND" },
+    { feedKeys: ["UNKNOWN"] }, { feedKeys: ["GTFS_SWITZERLAND"] },
     { pollingSeconds: 30 }, { pollingSeconds: 60.5 }, { pollingSeconds: "60" },
     { stopAt: "tomorrow" }, { stopAt: "2026-10-10T12:00:00" },
   ]) {

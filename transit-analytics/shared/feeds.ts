@@ -222,11 +222,9 @@ export type CredentialKey =
   | CredentialKeyFor<(typeof realtimeFeeds)[RealtimeFeedKey]>;
 
 export type FetcherEvent = {
-  feedKey: FeedKey;
+  feedKeys: FeedKey[];
   scheduledTime: string;
 };
-
-export type StaticFetcherEvent = FetcherEvent;
 
 export function createFeedRequest(
   feed: FeedSource,
@@ -265,17 +263,15 @@ export function assertFetcherEvent(
   if (
     !event ||
     typeof event !== "object" ||
-    !("feedKey" in event) ||
-    typeof event.feedKey !== "string" ||
-    (!Object.hasOwn(staticFeeds, event.feedKey) &&
-      !Object.hasOwn(realtimeFeeds, event.feedKey))
+    !("feedKeys" in event) || "feedKey" in event
   ) {
-    throw new Error(
-      `Invalid fetcher event. Expected feedKey: ${[
-        ...Object.keys(staticFeeds),
-        ...Object.keys(realtimeFeeds),
-      ].join(", ")}`,
-    );
+    throw new Error("Invalid fetcher event. Supply feedKeys as an array.");
+  }
+  const keys = event.feedKeys;
+  if (!Array.isArray(keys) || keys.length === 0 || new Set(keys).size !== keys.length ||
+    keys.some((key) => typeof key !== "string" ||
+      (!Object.hasOwn(staticFeeds, key) && !Object.hasOwn(realtimeFeeds, key)))) {
+    throw new Error("Invalid fetcher event. Supply nonempty, unique registered feed keys.");
   }
   if (
     !("scheduledTime" in event) ||
@@ -305,5 +301,3 @@ export function validateRealtimeInterval(
     );
   }
 }
-
-export const assertStaticFetcherEvent = assertFetcherEvent;

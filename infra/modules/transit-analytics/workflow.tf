@@ -204,7 +204,7 @@ resource "aws_scheduler_schedule" "static_feed" {
 
     # https://docs.aws.amazon.com/scheduler/latest/UserGuide/managing-schedule-context-attributes.html
     input = jsonencode({
-      feedKey         = each.key
+      feedKeys        = [each.key]
       scheduleArn     = "<aws.scheduler.schedule-arn>"
       scheduledTime   = "<aws.scheduler.scheduled-time>"
       stateMachineArn = aws_sfn_state_machine.static_feed.arn

@@ -18,7 +18,7 @@ const s3 = new S3Client({});
 
 export const handler: Handler<
   FetcherEvent,
-  Awaited<ReturnType<typeof fetchStaticFeed>>
+  Awaited<ReturnType<typeof fetchStaticFeed>>[]
 > = async (event, context) => {
   assertFetcherEvent(event);
   const remainingMs = context.getRemainingTimeInMillis();
@@ -28,27 +28,31 @@ export const handler: Handler<
   timer.unref();
   if (remainingMs <= 1_000) cancel();
   try {
-    return await fetchStaticFeed(
-      event.feedKey,
-      new Date(event.scheduledTime),
-      s3,
-      bucket,
-      controller.signal,
-    );
-  } catch (error) {
-    console.error({
-      event: error instanceof UpstreamResponseError && error.rateLimited
-        ? "fetch.rate_limited"
-        : "fetch.invocation_failed",
-      feedKey: event.feedKey,
-      requestId: context.awsRequestId,
-      remainingMs: context.getRemainingTimeInMillis(),
-      errorType: error instanceof Error ? error.name : "UnknownError",
-      ...(error instanceof UpstreamResponseError
-        ? { status: error.status, retryAfterMs: error.retryAfterMs }
-        : {}),
+    const results = await Promise.allSettled(event.feedKeys.map(async (feedKey) => {
+      try {
+        return await fetchStaticFeed(feedKey, new Date(event.scheduledTime), s3, bucket, controller.signal);
+      } catch (error) {
+        console.error({
+          event: error instanceof UpstreamResponseError && error.rateLimited
+            ? "fetch.rate_limited"
+            : "fetch.invocation_failed",
+          feedKey,
+          requestId: context.awsRequestId,
+          remainingMs: context.getRemainingTimeInMillis(),
+          errorType: error instanceof Error ? error.name : "UnknownError",
+          ...(error instanceof UpstreamResponseError
+            ? { status: error.status, retryAfterMs: error.retryAfterMs }
+            : {}),
+        });
+        throw error;
+      }
+    }));
+    // Let every feed finish before failing the invocation; successful uploads are retained.
+    const values = results.map((result) => {
+      if (result.status === "rejected") throw result.reason;
+      return result.value;
     });
-    throw error;
+    return values;
   } finally {
     clearTimeout(timer);
   }

@@ -9,7 +9,7 @@ States:
       FunctionName: "${feed_fetcher_arn}"
       Payload:
         # https://docs.aws.amazon.com/step-functions/latest/dg/input-output-contextobject.html
-        feedKey: "{% $states.context.Execution.Input.feedKey %}"
+        feedKeys: "{% $states.context.Execution.Input.feedKeys %}"
         scheduledTime: "{% $states.context.Execution.Input.scheduledTime %}"
     Output: "{% $states.result.Payload %}"
     End: true

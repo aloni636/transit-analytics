@@ -4,11 +4,11 @@ import { createExecutionName, createWorkflowInput } from "../index.js";
 
 test("creates a deterministic Step Functions execution name", () => {
   const first = createExecutionName(
-    "GTFS_SWITZERLAND",
+    ["GTFS_SWITZERLAND"],
     "2026-08-09T12:00:00Z",
   );
   const second = createExecutionName(
-    "GTFS_SWITZERLAND",
+    ["GTFS_SWITZERLAND"],
     "2026-08-09T12:00:00Z",
   );
 
@@ -19,7 +19,7 @@ test("creates a deterministic Step Functions execution name", () => {
   assert.match(first, /^[0-9A-Za-z_-]+$/);
   assert.notEqual(
     first,
-    createExecutionName("GTFS_SWITZERLAND", "2026-08-11T12:00:00Z"),
+    createExecutionName(["GTFS_SWITZERLAND"], "2026-08-11T12:00:00Z"),
   );
 });
 
@@ -28,12 +28,23 @@ test("forwards only the scheduled feed and sample time", async () => {
     createWorkflowInput({
       stateMachineArn: "arn:aws:states:::stateMachine:static",
       scheduleArn: "arn:aws:scheduler:::schedule/realtime",
-      feedKey: "GTFS_SWITZERLAND",
+      feedKeys: ["GTFS_SWITZERLAND"],
       scheduledTime: "2026-08-09T12:00:00Z",
     }),
   ) as Record<string, unknown>;
   assert.deepEqual(input, {
-    feedKey: "GTFS_SWITZERLAND",
+    feedKeys: ["GTFS_SWITZERLAND"],
     scheduledTime: "2026-08-09T12:00:00Z",
   });
+});
+
+test("batch execution names remain bounded and distinguish feeds and scheduled occurrences", () => {
+  const keys = ["GTFS_SWITZERLAND", "GTFS_GERMANY"] as const;
+  const timestamp = "2026-08-09T12:00:00Z";
+  const name = createExecutionName([...keys], timestamp);
+  assert.equal(name, createExecutionName([...keys], timestamp));
+  assert(name.length <= 80);
+  assert.match(name, /^[0-9A-Za-z_-]+$/);
+  assert.notEqual(name, createExecutionName([...keys], "2026-08-10T12:00:00Z"));
+  assert.notEqual(name, createExecutionName(["GTFS_SWITZERLAND", "GTFS_SWEDEN_3"], timestamp));
 });

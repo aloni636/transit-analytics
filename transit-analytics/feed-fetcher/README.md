@@ -55,7 +55,7 @@ pnpm dev GTFS_SWITZERLAND
 pnpm debug GTFS_GERMANY
 ```
 
-`pnpm dev <KEY>` performs one fetch. Realtime keys fetch a protobuf and its JSON HTTP-metadata sidecar. `pnpm debug <KEY>` waits for the Node
+`pnpm dev <KEY> [KEY ...]` fetches the provided feeds concurrently. Realtime keys fetch a protobuf and its JSON HTTP-metadata sidecar. `pnpm debug <KEY> [KEY ...]` waits for the Node
 debugger before doing the same. There is intentionally no watch task because
 fetching large provider archives continuously is not a useful development
 cycle.

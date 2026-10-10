@@ -35,7 +35,7 @@ config({ path: ".env.development", quiet: true });
 
 const scheduledTime = new Date().toISOString();
 const event: unknown = {
-  feedKey: process.argv[2],
+  feedKeys: process.argv.slice(2),
   scheduledTime,
 };
 assertFetcherEvent(event);
@@ -55,14 +55,19 @@ await ensureBucket(s3, bucket);
 
 const eventLoopUtilizationStartedAt = performance.eventLoopUtilization();
 
-const result = await fetchStaticFeed(
-  event.feedKey,
+const results = await Promise.allSettled(event.feedKeys.map((feedKey) => fetchStaticFeed(
+  feedKey,
   new Date(event.scheduledTime),
   s3,
   bucket,
-);
+)));
 
-console.info({ event: "dev.completed", ...result });
+for (const result of results) {
+  if (result.status === "rejected") {
+    console.error(result.reason);
+    process.exitCode = 1;
+  } else console.info({ event: "dev.completed", ...result.value });
+}
 
 const resources = process.resourceUsage();
 console.info({
