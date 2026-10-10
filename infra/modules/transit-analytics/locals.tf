@@ -1,13 +1,15 @@
 data "aws_caller_identity" "current" {}
 
 locals {
-  application_name          = "transit-analytics"
-  fetcher_name              = "${local.application_name}-static-fetcher-${var.environment}"
-  workflow_executor_name    = "${local.application_name}-sf-workflow-executor-${var.environment}"
-  static_feed_workflow_name = "${local.application_name}-static-feed-${var.environment}"
-  data_lake_name            = "${local.application_name}-${var.environment}-${data.aws_caller_identity.current.account_id}"
+  application_name            = "transit-analytics"
+  fetcher_name                = "${local.application_name}-static-fetcher-${var.environment}"
+  realtime_fetcher_name       = "${local.application_name}-realtime-fetcher-${var.environment}"
+  workflow_executor_name      = "${local.application_name}-sf-workflow-executor-${var.environment}"
+  static_feed_workflow_name   = "${local.application_name}-static-feed-${var.environment}"
+  realtime_feed_workflow_name = "${local.application_name}-realtime-feed-${var.environment}"
+  data_lake_name              = "${local.application_name}-${var.environment}-${data.aws_caller_identity.current.account_id}"
 
-  # This schedule map must stay in sync with the feed keys in static-fetcher/feeds.ts.
+  # These schedule maps must stay in sync with the feed keys in shared/feeds.ts.
   static_feed_schedules = {
     GTFS_SWEDEN_3 = {
       expression = "cron(0 7 * * ? *)"

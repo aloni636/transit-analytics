@@ -11,9 +11,11 @@ resource "aws_iam_role" "workflow_executor" {
 
 data "aws_iam_policy_document" "workflow_executor" {
   statement {
-    sid       = "StartStaticFeedWorkflow"
-    actions   = ["states:StartExecution"]
-    resources = [aws_sfn_state_machine.static_feed.arn]
+    sid     = "StartFeedWorkflows"
+    actions = ["states:StartExecution"]
+    resources = [
+      aws_sfn_state_machine.static_feed.arn,
+    ]
   }
 
   statement {
@@ -73,6 +75,46 @@ data "aws_iam_policy_document" "step_functions_assume_role" {
       identifiers = ["states.amazonaws.com"]
     }
   }
+}
+
+resource "aws_iam_role" "realtime_feed_workflow" {
+  name               = "${local.realtime_feed_workflow_name}-execution"
+  assume_role_policy = data.aws_iam_policy_document.step_functions_assume_role.json
+}
+
+data "aws_iam_policy_document" "realtime_feed_workflow" {
+  statement {
+    sid       = "InvokeRealtimeFetcher"
+    actions   = ["lambda:InvokeFunction"]
+    resources = [aws_lambda_function.realtime_fetcher.arn]
+  }
+
+  statement {
+    sid       = "ContinueSameWorkflow"
+    actions   = ["states:StartExecution"]
+    resources = ["arn:${data.aws_partition.current.partition}:states:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:stateMachine:${local.realtime_feed_workflow_name}"]
+  }
+}
+
+resource "aws_iam_role_policy" "realtime_feed_workflow" {
+  name   = "${local.realtime_feed_workflow_name}-permissions"
+  role   = aws_iam_role.realtime_feed_workflow.id
+  policy = data.aws_iam_policy_document.realtime_feed_workflow.json
+}
+
+resource "aws_sfn_state_machine" "realtime_feed" {
+  name     = local.realtime_feed_workflow_name
+  role_arn = aws_iam_role.realtime_feed_workflow.arn
+  type     = "STANDARD"
+  definition = jsonencode(yamldecode(templatefile(
+    "${path.module}/realtime-feed-workflow.asl.yaml",
+    {
+      realtime_fetcher_arn = aws_lambda_function.realtime_fetcher.arn
+      realtime_minimums    = jsonencode(jsondecode(file("${var.fetcher_directory}/dist/realtime-feeds.json")))
+    },
+  )))
+
+  depends_on = [aws_iam_role_policy.realtime_feed_workflow]
 }
 
 resource "aws_iam_role" "static_feed_workflow" {

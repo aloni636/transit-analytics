@@ -23,8 +23,15 @@ output "trafiklab_secret_arn" {
   value       = aws_secretsmanager_secret.provider["trafiklab"].arn
 }
 
+output "realtime_feed_workflow_arn" {
+  description = "ARN of the realtime-feed collection state machine."
+  value       = aws_sfn_state_machine.realtime_feed.arn
+}
 
 output "opentransportdata_secret_arn" {
   description = "Provider-scoped secret read by the fetcher for Swiss realtime data."
   value       = aws_secretsmanager_secret.provider["opentransportdata"].arn
+}
+output "realtime_fetcher_function_name" {
+  value = aws_lambda_function.realtime_fetcher.function_name
 }
