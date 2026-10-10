@@ -41,42 +41,14 @@ importers:
 
   .: {}
 
-  gtfs-rt-fetcher:
-    dependencies:
-      '@aws-lambda-powertools/parameters':
-        specifier: 'catalog:'
-        version: 2.34.0(@aws-sdk/client-secrets-manager@3.1096.0)
-      '@aws-sdk/client-secrets-manager':
-        specifier: 'catalog:'
-        version: 3.1096.0
-      dotenv:
-        specifier: 17.4.2
-        version: 17.4.2
-      gtfs-realtime-bindings:
-        specifier: ^2.2.0
-        version: 2.2.0
-      kafkajs:
-        specifier: ^2.2.4
-        version: 2.2.4
-    devDependencies:
-      '@types/node':
-        specifier: 'catalog:'
-        version: 26.1.2
-      esbuild:
-        specifier: 'catalog:'
-        version: 0.25.8
-      tsx:
-        specifier: 'catalog:'
-        version: 4.20.3
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-
   sf-workflow-executor:
     dependencies:
       '@aws-sdk/client-sfn':
         specifier: 'catalog:'
         version: 3.1096.0
+      '@transit-analytics/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       '@types/aws-lambda':
         specifier: 'catalog:'
@@ -90,6 +62,19 @@ importers:
       tsx:
         specifier: 'catalog:'
         version: 4.20.3
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
+  shared:
+    dependencies:
+      '@aws-lambda-powertools/parameters':
+        specifier: 'catalog:'
+        version: 2.34.0(@aws-sdk/client-secrets-manager@3.1096.0)
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.1.2
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -108,9 +93,15 @@ importers:
       '@aws-sdk/lib-storage':
         specifier: 'catalog:'
         version: 3.1096.0(@aws-sdk/client-s3@3.1096.0)
+      '@transit-analytics/shared':
+        specifier: workspace:*
+        version: link:../shared
       dotenv:
         specifier: 17.4.2
         version: 17.4.2
+      gtfs-realtime-bindings:
+        specifier: ^2.2.0
+        version: 2.2.0
       p-retry:
         specifier: 8.0.0
         version: 8.0.0
@@ -130,12 +121,18 @@ importers:
       esbuild:
         specifier: 'catalog:'
         version: 0.25.8
+      jsonata:
+        specifier: ^2.2.2
+        version: 2.2.2
       tsx:
         specifier: 'catalog:'
         version: 4.20.3
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
 
 packages:
 
@@ -730,12 +727,12 @@ packages:
     engines: {node: '>=12.0.0'}
     hasBin: true
 
+  jsonata@2.2.2:
+    resolution: {integrity: sha512-XDFH2PuaAXv0AXJEWwElXbqADmKFGKMLMkFb+qOz0EhjQW2EIJ6pgtordLU+4u3IVERyBfqy6bi6kZKEncvRqA==}
+    engines: {node: '>= 8'}
+
   jsonfile@6.2.1:
     resolution: {integrity: sha512-zwOTdL3rFQ/lRdBnntKVOX6k5cKJwEc1HdilT71BWEu7J41gXIB2MRp+vxduPSwZJPWBxEzv4yH1wYLJGUHX4Q==}
-
-  kafkajs@2.2.4:
-    resolution: {integrity: sha512-j/YeapB1vfPT2iOIUn/vxdyKEuhuY2PxMBvf5JWux6iSaukAccrMtXEY/Lb7OvavDhOWME589bpLrEdnVHjfjA==}
-    engines: {node: '>=14.0.0'}
 
   klaw@3.0.0:
     resolution: {integrity: sha512-0Fo5oir+O9jnXu5EefYbVK+mHMBeEVEy2cmctR1O1NECcCkPRreJKrS6Qt/j3KC2C148Dfo9i3pCmCMsdqGr0g==}
@@ -884,6 +881,11 @@ packages:
 
   xmlcreate@2.0.4:
     resolution: {integrity: sha512-nquOebG4sngPmGPICTS5EnxqhKbCmz5Ox5hsszI2T6U5qdrJizBc+0ilYSEjTSzU0yZcmvppztXe/5Al5fUwdg==}
+
+  yaml@2.9.1:
+    resolution: {integrity: sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==}
+    engines: {node: '>= 14.6'}
+    hasBin: true
 
 snapshots:
 
@@ -1460,13 +1462,13 @@ snapshots:
       strip-json-comments: 3.1.1
       underscore: 1.13.8
 
+  jsonata@2.2.2: {}
+
   jsonfile@6.2.1:
     dependencies:
       universalify: 2.0.1
     optionalDependencies:
       graceful-fs: 4.2.11
-
-  kafkajs@2.2.4: {}
 
   klaw@3.0.0:
     dependencies:
@@ -1634,3 +1636,5 @@ snapshots:
   wrappy@1.0.2: {}
 
   xmlcreate@2.0.4: {}
+
+  yaml@2.9.1: {}

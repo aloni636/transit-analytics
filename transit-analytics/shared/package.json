@@ -1,0 +1,23 @@
+{
+  "name": "@transit-analytics/shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^24.16.0"
+  },
+  "exports": {
+    "./credentials": "./credentials.ts",
+    "./feeds": "./feeds.ts"
+  },
+  "scripts": {
+    "check": "tsc --project tsconfig.json"
+  },
+  "dependencies": {
+    "@aws-lambda-powertools/parameters": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

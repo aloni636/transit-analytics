@@ -9,7 +9,7 @@
   "scripts": {
     "check": "tsc --project tsconfig.json",
     "build": "pnpm run check && node esbuild.mjs",
-    "test": "node --import tsx --test test/fetcher.integration.test.ts",
+    "test": "node --import tsx --test --test-concurrency=1 test/*.test.ts",
     "dev": "node --import tsx dev.ts",
     "debug": "node --inspect-brk --import tsx dev.ts",
     "sync": "node scripts/sync.mjs"
@@ -19,7 +19,9 @@
     "@aws-sdk/client-s3": "catalog:",
     "@aws-sdk/client-secrets-manager": "catalog:",
     "@aws-sdk/lib-storage": "catalog:",
+    "@transit-analytics/shared": "workspace:*",
     "dotenv": "17.4.2",
+    "gtfs-realtime-bindings": "^2.2.0",
     "p-retry": "8.0.0",
     "unzipper": "0.12.5"
   },
@@ -28,7 +30,9 @@
     "@types/node": "catalog:",
     "@types/unzipper": "0.10.11",
     "esbuild": "catalog:",
+    "jsonata": "^2.2.2",
     "tsx": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "yaml": "^2.9.1"
   }
 }

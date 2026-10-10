@@ -4,7 +4,7 @@ import {
   StartExecutionCommand,
 } from "@aws-sdk/client-sfn";
 import type { Handler } from "aws-lambda";
-import type { FeedKey } from "../static-fetcher/feeds.js";
+import type { FeedKey } from "@transit-analytics/shared/feeds";
 
 type Event = {
   stateMachineArn: string;
@@ -26,6 +26,13 @@ export function createExecutionName(
   return `${feedKey}-${scheduledTime}`.replaceAll(/[^0-9A-Za-z_-]/g, "-");
 }
 
+export function createWorkflowInput(event: Event): string {
+  return JSON.stringify({
+    feedKey: event.feedKey,
+    scheduledTime: event.scheduledTime,
+  });
+}
+
 export const handler: Handler<Event, void> = async (event) => {
   const executionName = createExecutionName(
     event.feedKey,
@@ -37,10 +44,7 @@ export const handler: Handler<Event, void> = async (event) => {
       new StartExecutionCommand({
         stateMachineArn: event.stateMachineArn,
         name: executionName,
-        input: JSON.stringify({
-          feedKey: event.feedKey,
-          scheduledTime: event.scheduledTime,
-        }),
+        input: createWorkflowInput(event),
       }),
     );
   } catch (error) {

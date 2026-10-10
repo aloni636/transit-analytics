@@ -12,7 +12,8 @@
     "test": "node --import tsx --test test/*.test.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-sfn": "catalog:"
+    "@aws-sdk/client-sfn": "catalog:",
+    "@transit-analytics/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/aws-lambda": "catalog:",
