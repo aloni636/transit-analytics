@@ -6,15 +6,15 @@ default:
 # Type-check the shared registry, static/realtime fetcher, and workflow executor.
 check:
     pnpm --dir shared check
-    pnpm --dir static-fetcher check
+    pnpm --dir feed-fetcher check
     pnpm --dir sf-workflow-executor check
 
 # Type-check and bundle the static fetcher and Step Functions workflow executor Lambdas.
 build:
-    pnpm --dir static-fetcher build
+    pnpm --dir feed-fetcher build
     pnpm --dir sf-workflow-executor build
 
 # Run the RustFS integration test and Step Functions workflow executor unit test.
 test:
-    pnpm --dir static-fetcher test
+    pnpm --dir feed-fetcher test
     pnpm --dir sf-workflow-executor test

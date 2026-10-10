@@ -1,6 +1,6 @@
 packages:
   - shared
-  - static-fetcher
+  - feed-fetcher
   - sf-workflow-executor
 
 catalog:

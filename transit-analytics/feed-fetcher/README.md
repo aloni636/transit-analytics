@@ -1,4 +1,4 @@
-# Static fetcher
+# Feed fetcher
 
 The declarative GTFS Static and GTFS-Realtime feed registry is located at `../shared/feeds.ts`. One fetcher artifact powers separate static and realtime Lambdas that store ZIPs, extracted files, and raw protobuf snapshots in S3.
 
@@ -50,7 +50,7 @@ just verify
 The lower-level one-shot fetch and debugger commands remain pnpm tasks:
 
 ```sh
-cd static-fetcher
+cd feed-fetcher
 pnpm dev GTFS_SWITZERLAND
 pnpm debug GTFS_GERMANY
 ```
@@ -76,7 +76,7 @@ Local Trafiklab credentials are loaded by `dotenv` from the ignored
 `.env.development` file:
 
 ```dotenv
-GTFS_USER_AGENT="transit-analytics/static-fetcher-dev"
+GTFS_USER_AGENT="transit-analytics/feed-fetcher-dev"
 GTFS_SWEDEN_3_STATIC_DATA="..."
 GTFS_SVERIGE_2="..."
 GTFS_SWEDEN_3_REALTIME_DATA="..."

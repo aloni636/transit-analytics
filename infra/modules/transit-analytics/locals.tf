@@ -2,7 +2,7 @@ data "aws_caller_identity" "current" {}
 
 locals {
   application_name            = "transit-analytics"
-  fetcher_name                = "${local.application_name}-static-fetcher-${var.environment}"
+  fetcher_name                = "${local.application_name}-feed-fetcher-${var.environment}"
   realtime_fetcher_name       = "${local.application_name}-realtime-fetcher-${var.environment}"
   workflow_executor_name      = "${local.application_name}-sf-workflow-executor-${var.environment}"
   static_feed_workflow_name   = "${local.application_name}-static-feed-${var.environment}"

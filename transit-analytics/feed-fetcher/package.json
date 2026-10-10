@@ -1,5 +1,5 @@
 {
-  "name": "static-fetcher",
+  "name": "feed-fetcher",
   "version": "1.0.0",
   "private": true,
   "type": "module",

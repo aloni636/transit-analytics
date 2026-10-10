@@ -15,7 +15,7 @@ Copy the mobile device ARN from its delivery channel in AWS User Notifications.
 Terraform associates registered devices; it cannot register a phone or grant
 its operating-system push permission.
 
-From `transit-analytics/static-fetcher`, validate and verify before collecting:
+From `transit-analytics/feed-fetcher`, validate and verify before collecting:
 
 ```sh
 pnpm collection validate

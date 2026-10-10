@@ -79,7 +79,7 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
-  static-fetcher:
+  feed-fetcher:
     dependencies:
       '@aws-sdk/client-s3':
         specifier: 'catalog:'

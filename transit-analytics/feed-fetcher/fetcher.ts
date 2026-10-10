@@ -319,7 +319,7 @@ async function fetchStatic(
   const destinationKey = buildObjectKey(feed.objectPrefix, scheduledTime, "zip");
   const temporaryArchivePath = join(
     tmpdir(),
-    `static-fetcher-${process.pid}-${randomUUID()}.zip`,
+    `feed-fetcher-${process.pid}-${randomUUID()}.zip`,
   );
   const [archiveStream, temporaryArchiveStream] = response.body!.tee();
   const contentLength = response.headers.get("content-length");

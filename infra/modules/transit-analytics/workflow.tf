@@ -126,7 +126,7 @@ data "aws_iam_policy_document" "static_feed_workflow" {
   statement {
     sid       = "InvokeStaticFetcher"
     actions   = ["lambda:InvokeFunction"]
-    resources = [aws_lambda_function.static_fetcher.arn]
+    resources = [aws_lambda_function.feed_fetcher.arn]
   }
 }
 
@@ -142,7 +142,7 @@ resource "aws_sfn_state_machine" "static_feed" {
   type     = "STANDARD"
   definition = jsonencode(yamldecode(templatefile(
     "${path.module}/static-feed-workflow.asl.yaml",
-    { static_fetcher_arn = aws_lambda_function.static_fetcher.arn },
+    { feed_fetcher_arn = aws_lambda_function.feed_fetcher.arn },
   )))
 
   # Note that cloudwatch metrics for state machines are automatically

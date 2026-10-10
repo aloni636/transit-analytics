@@ -16,10 +16,10 @@ terraform {
   }
 }
 
-data "archive_file" "static_fetcher" {
+data "archive_file" "feed_fetcher" {
   type        = "zip"
   source_dir  = "${var.fetcher_directory}/dist"
-  output_path = "${path.root}/.terraform/static-fetcher.zip"
+  output_path = "${path.root}/.terraform/feed-fetcher.zip"
 }
 
 data "aws_iam_policy_document" "lambda_assume_role" {
@@ -34,12 +34,12 @@ data "aws_iam_policy_document" "lambda_assume_role" {
   }
 }
 
-resource "aws_iam_role" "static_fetcher" {
+resource "aws_iam_role" "feed_fetcher" {
   name               = "${local.fetcher_name}-execution"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
 }
 
-data "aws_iam_policy_document" "static_fetcher" {
+data "aws_iam_policy_document" "feed_fetcher" {
   statement {
     sid = "WriteRawData"
     # PutObject authorizes create, upload-part, and complete; Abort permits
@@ -63,14 +63,14 @@ data "aws_iam_policy_document" "static_fetcher" {
       "logs:CreateLogStream",
       "logs:PutLogEvents",
     ]
-    resources = ["${aws_cloudwatch_log_group.static_fetcher.arn}:*"]
+    resources = ["${aws_cloudwatch_log_group.feed_fetcher.arn}:*"]
   }
 }
 
-resource "aws_iam_role_policy" "static_fetcher" {
+resource "aws_iam_role_policy" "feed_fetcher" {
   name   = "${local.fetcher_name}-permissions"
-  role   = aws_iam_role.static_fetcher.id
-  policy = data.aws_iam_policy_document.static_fetcher.json
+  role   = aws_iam_role.feed_fetcher.id
+  policy = data.aws_iam_policy_document.feed_fetcher.json
 }
 
 resource "aws_secretsmanager_secret" "provider" {
@@ -103,17 +103,17 @@ resource "aws_secretsmanager_secret_version" "opentransportdata" {
   secret_string_wo_version = var.opentransportdata_secret_version
 }
 
-resource "aws_cloudwatch_log_group" "static_fetcher" {
+resource "aws_cloudwatch_log_group" "feed_fetcher" {
   name              = "/aws/lambda/${local.fetcher_name}"
   retention_in_days = 14
 }
 
-resource "aws_lambda_function" "static_fetcher" {
-  filename         = data.archive_file.static_fetcher.output_path
+resource "aws_lambda_function" "feed_fetcher" {
+  filename         = data.archive_file.feed_fetcher.output_path
   function_name    = local.fetcher_name
-  role             = aws_iam_role.static_fetcher.arn
+  role             = aws_iam_role.feed_fetcher.arn
   handler          = "index.handler"
-  source_code_hash = data.archive_file.static_fetcher.output_base64sha256
+  source_code_hash = data.archive_file.feed_fetcher.output_base64sha256
   runtime          = "nodejs24.x"
   memory_size      = var.lambda_memory_size
   timeout          = var.lambda_timeout
@@ -127,7 +127,7 @@ resource "aws_lambda_function" "static_fetcher" {
   environment {
     variables = {
       DESTINATION_BUCKET           = aws_s3_bucket.data_lake.id
-      GTFS_USER_AGENT              = "transit-analytics/static-fetcher"
+      GTFS_USER_AGENT              = "transit-analytics/feed-fetcher"
       NODE_OPTIONS                 = "--enable-source-maps" # see `esbuild.mjs`
       TRAFIKLAB_SECRET_ARN         = aws_secretsmanager_secret.provider["trafiklab"].arn
       OPENTRANSPORTDATA_SECRET_ARN = aws_secretsmanager_secret.provider["opentransportdata"].arn
@@ -137,9 +137,9 @@ resource "aws_lambda_function" "static_fetcher" {
   logging_config {
     application_log_level = "INFO"
     log_format            = "JSON"
-    log_group             = aws_cloudwatch_log_group.static_fetcher.name
+    log_group             = aws_cloudwatch_log_group.feed_fetcher.name
     system_log_level      = "INFO"
   }
 
-  depends_on = [aws_iam_role_policy.static_fetcher]
+  depends_on = [aws_iam_role_policy.feed_fetcher]
 }

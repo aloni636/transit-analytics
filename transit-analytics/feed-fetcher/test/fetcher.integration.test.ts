@@ -40,7 +40,7 @@ async function loadFixture() {
 
 test("fetches and extracts a GTFS provider stream into RustFS", async () => {
   const fixture = await loadFixture();
-  const bucket = `static-fetcher-test-${Date.now()}`;
+  const bucket = `feed-fetcher-test-${Date.now()}`;
   const scheduledTime = new Date("2026-08-09T12:00:00Z");
 
   const s3 = new S3Client({

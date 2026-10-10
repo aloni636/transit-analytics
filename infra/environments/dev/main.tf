@@ -6,7 +6,7 @@ module "transit_analytics" {
   }
 
   environment                 = local.environment
-  fetcher_directory           = abspath("${path.root}/../../../transit-analytics/static-fetcher")
+  fetcher_directory           = abspath("${path.root}/../../../transit-analytics/feed-fetcher")
   workflow_executor_directory = abspath("${path.root}/../../../transit-analytics/sf-workflow-executor")
 
   gtfs_sweden_3_static_data         = var.gtfs_sweden_3_static_data

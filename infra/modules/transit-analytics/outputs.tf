@@ -3,9 +3,9 @@ output "data_lake_bucket" {
   value       = aws_s3_bucket.data_lake.id
 }
 
-output "static_fetcher_function_name" {
+output "feed_fetcher_function_name" {
   description = "Name used to invoke the static fetcher Lambda."
-  value       = aws_lambda_function.static_fetcher.function_name
+  value       = aws_lambda_function.feed_fetcher.function_name
 }
 
 output "workflow_executor_function_name" {

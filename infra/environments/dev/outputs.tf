@@ -3,9 +3,9 @@ output "data_lake_bucket" {
   value       = module.transit_analytics.data_lake_bucket
 }
 
-output "static_fetcher_function_name" {
+output "feed_fetcher_function_name" {
   description = "Name of the dev static fetcher Lambda."
-  value       = module.transit_analytics.static_fetcher_function_name
+  value       = module.transit_analytics.feed_fetcher_function_name
 }
 
 output "workflow_executor_function_name" {

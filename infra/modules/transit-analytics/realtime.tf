@@ -38,17 +38,17 @@ resource "aws_cloudwatch_log_group" "realtime_fetcher" {
 }
 
 resource "aws_lambda_function" "realtime_fetcher" {
-  filename         = data.archive_file.static_fetcher.output_path
+  filename         = data.archive_file.feed_fetcher.output_path
   function_name    = local.realtime_fetcher_name
   role             = aws_iam_role.realtime_fetcher.arn
   handler          = "index.handler"
-  source_code_hash = data.archive_file.static_fetcher.output_base64sha256
+  source_code_hash = data.archive_file.feed_fetcher.output_base64sha256
   runtime          = "nodejs24.x"
   memory_size      = var.lambda_memory_size
   timeout          = 25
 
   environment {
-    variables = aws_lambda_function.static_fetcher.environment[0].variables
+    variables = aws_lambda_function.feed_fetcher.environment[0].variables
   }
 
   logging_config {
