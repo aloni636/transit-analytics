@@ -7,6 +7,7 @@
     "node": "^24.16.0"
   },
   "scripts": {
+    "collection": "node --import tsx scripts/collection.ts",
     "check": "tsc --project tsconfig.json",
     "build": "pnpm run check && node esbuild.mjs",
     "test": "node --import tsx --test --test-concurrency=1 test/*.test.ts",

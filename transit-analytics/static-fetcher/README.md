@@ -1,6 +1,9 @@
 # Static fetcher
 
-The GTFS-Static feeds supported by the TypeScript static fetcher are located at `./feeds.ts`.
+The declarative GTFS Static and GTFS-Realtime feed registry is located at `../shared/feeds.ts`. One fetcher artifact powers separate static and realtime Lambdas that store ZIPs, extracted files, and raw protobuf snapshots in S3.
+
+See [Realtime collection](COLLECTION.md) for manual Console input, mobile
+notification verification, and two-day collection commands.
 
 ## Provider documentation
 
@@ -37,7 +40,7 @@ From the fetcher devcontainer, use the project recipes for the normal feedback
 cycle:
 
 ```sh
-cd apps/transit-analytics
+cd transit-analytics
 just check
 just build
 just test
@@ -52,7 +55,7 @@ pnpm dev GTFS_SWITZERLAND
 pnpm debug GTFS_GERMANY
 ```
 
-`pnpm dev <KEY>` performs one fetch. `pnpm debug <KEY>` waits for the Node
+`pnpm dev <KEY>` performs one fetch. Realtime keys fetch a protobuf and its JSON HTTP-metadata sidecar. `pnpm debug <KEY>` waits for the Node
 debugger before doing the same. There is intentionally no watch task because
 fetching large provider archives continuously is not a useful development
 cycle.
@@ -73,16 +76,21 @@ Local Trafiklab credentials are loaded by `dotenv` from the ignored
 `.env.development` file:
 
 ```dotenv
+GTFS_USER_AGENT="transit-analytics/static-fetcher-dev"
 GTFS_SWEDEN_3_STATIC_DATA="..."
 GTFS_SVERIGE_2="..."
+GTFS_SWEDEN_3_REALTIME_DATA="..."
+GTFS_SWEDEN_3_SERVICE_ALERTS_DATA="..."
+GTFS_SWITZERLAND_REALTIME_DATA="..."
 ```
 
 Run `pnpm sync` to add missing development variable names to `.env.example`
 without copying values. Public Swiss and German feeds need no local credential.
 
-Lambda reads both Swedish values from the provider-scoped secret identified by
-`TRAFIKLAB_SECRET_ARN`. AWS Lambda Powertools handles Secrets Manager access,
-JSON transformation, and warm-runtime caching.
+Lambda reads Swedish static/realtime credentials from `TRAFIKLAB_SECRET_ARN`
+and Swiss realtime credentials from `OPENTRANSPORTDATA_SECRET_ARN`. AWS Lambda
+Powertools handles Secrets Manager access, JSON transformation, and warm-runtime
+caching. Germany and Swiss static feeds are public.
 
 For CI, expose the values as GitHub Actions secrets and map them to
 `TF_VAR_<VARIABLE_NAME>`. Terraform sends
@@ -90,7 +98,7 @@ them through ephemeral variables to Secrets Manager's write-only value, so the
 credentials are not stored in plans or state. Increment
 `TF_VAR_trafiklab_secret_version` when rotating either credential.
 
-From `apps/transit-analytics`, follow the one-time state-bucket bootstrap in
+From `transit-analytics`, follow the one-time state-bucket bootstrap in
 `infra/README.md`, run `just init dev`, then use `just plan dev` to build and
 review the Terraform plan and `just deploy dev` to rebuild and apply. Both
 commands validate the configuration, but backend initialization remains an
@@ -99,18 +107,14 @@ CI should initialize once per fresh job before calling these recipes.
 
 ## Adding a feed
 
-1. Add its object prefix and side-effect-free `createRequest` entry to
-   `feeds.ts`.
-2. For a public feed, construct its request without a credential.
-3. For an existing authenticated provider, add its credential name to
-   `.env.development`, run `pnpm sync`, and extend the provider's Terraform
-   write-only secret JSON and GitHub Actions secrets.
-4. For a new authenticated provider, add a provider secret, exact secret ARN
-   permission, and request-header or query-parameter construction.
-5. Increment the provider secret version when rotating credentials.
-6. Confirm its publication schedule, validity horizon, redirects, and
-   static/realtime version relationship in this README.
-7. Run `pnpm check`, `pnpm build`, `pnpm test`, and `pnpm dev <KEY>`.
+1. Add the feed definition, object prefix, auth method, and polling minimum to
+   `../shared/feeds.ts`.
+2. Add authenticated values to the appropriate local environment example and
+   Terraform write-only provider secret.
+3. Add or update the provider secret ARN permission and version counter.
+4. Confirm redirects, response metadata, publication cadence, and its
+   static/realtime version relationship.
+5. Run `pnpm check`, `pnpm build`, `pnpm test`, and `pnpm dev <KEY>`.
 
 ## Local AWS emulation
 
